@@ -1,0 +1,167 @@
+html {
+  height: 100%;
+}
+
+body {
+  height: 100%;
+}
+
+#container {
+  height: 100%;
+}
+
+#container-row {
+  background-color: #eeeeee;
+  height: 100%;
+}
+
+#left-panel {
+  background-color: #eeeeee;
+  padding: 1rem;
+  font-size: 0;
+  overflow: auto;
+}
+
+.object-button {
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.object-button:hover {
+  background-color: #dddddd;
+}
+
+#editor-panel {
+  background-color: #eeeeee;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  font-size: 0;
+}
+
+#editor {
+  height: 100%;
+  /*flex-grow: 1;*/
+}
+/*
+#editor {
+  width: 100%;
+  height: 100%;
+}*/
+
+canvas {
+  width: 100%;
+  height: 100%;
+}
+
+#controls-left {
+  background-color: #eeeeee;
+  font-size: 0;
+  padding: 1rem;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+#controls-right {
+  background-color: #eeeeee;
+  font-size: 0;
+  padding: 1rem;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.control-button {
+  font-size: 1.5rem;
+  display: inline-block;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.control-button-left {
+  margin-right: 1.5rem;
+}
+
+.control-button-left:last-child {
+  margin-right: 0;
+}
+
+.control-inactive:hover {
+  background-color: #dddddd;
+}
+
+.control-active {
+  background-color: #cccccc;
+}
+
+#delete {
+  flex: none;
+}
+
+#right-panel {
+  background-color: #eeeeee;
+  padding: 1rem;
+  font-size: 0;
+  overflow: auto;
+}
+
+#object-list {
+  height: 130px;
+  overflow: auto;
+  margin: 0.5rem;
+}
+
+.object-item {
+  font-size: 1rem;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.object-inactive:hover {
+  background-color: #dddddd;
+}
+
+.object-active {
+  background-color: #cccccc;
+}
+
+.parameter-label {
+  font-size: 1.5rem;
+  padding: 0.5rem;
+}
+
+.parameter-row {
+  padding: 0.5rem;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.parameter-item {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.parameter-box {
+  font-size: 1rem;
+  overflow: hidden;
+  height: 1.25rem;
+  visibility: hidden;
+}
+
+.input-text {
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+  border: 0;
+  background-color: #eeeeee;
+  font-family: inherit;
+  outline: none;
+  color: inherit;
+}
+
+#color {
+  visibility: hidden;
+}

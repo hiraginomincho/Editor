@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/editor.css">
+  </head>
+  <body>
+    <div class="container-fluid" id="container">
+      <div class="row" id="container-row">
+        <div class="col-2" id="left-panel">
+          <div class="object-button" id="box">
+            Box
+          </div>
+          <div class="object-button" id="cone">
+            Cone
+          </div>
+          <div class="object-button" id="cylinder">
+            Cylinder
+          </div>
+          <div class="object-button" id="dodecahedron">
+            Dodecahedron
+          </div>
+          <div class="object-button" id="icosahedron">
+            Icosahedron
+          </div>
+          <div class="object-button" id="octahedron">
+            Octahedron
+          </div>
+          <div class="object-button" id="sphere">
+            Sphere
+          </div>
+          <div class="object-button" id="tetrahedron">
+            Tetrahedron
+          </div>
+          <div class="object-button" id="torus">
+            Torus
+          </div>
+        </div>
+        <div class="col-8" id="editor-panel">
+          <div id="editor">
+          </div>
+          <div id="controls-left">
+            <div class="control-button control-button-left control-active" id="translate">
+              Translate
+            </div>
+            <div class="control-button control-button-left control-inactive" id="rotate">
+              Rotate
+            </div>
+            <div class="control-button control-button-left control-inactive" id="scale">
+              Scale
+            </div>
+          </div>
+          <div id="controls-right">
+            <div class="control-button control-inactive" id="delete">
+              Delete
+            </div>
+          </div>
+        </div>
+        <div class="col-2" id="right-panel">
+          <div class="parameter-label">
+            Objects
+          </div>
+          <div id="object-list">
+          </div>
+          <div class="parameter-label">
+            Position
+          </div>
+          <div class="row parameter-row">
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="position-x" type="number">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="position-y" type="number">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="position-z" type="number">
+            </div>
+          </div>
+          <div class="parameter-label">
+            Rotation
+          </div>
+          <div class="row parameter-row">
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="rotation-x" type="number">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="rotation-y" type="number">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="rotation-z" type="number">
+            </div>
+          </div>
+          <div class="parameter-label">
+            Scale
+          </div>
+          <div class="row parameter-row">
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="scale-x" type="number">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="scale-y" type="number">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="scale-z" type="number">
+            </div>
+          </div>
+          <div class="parameter-label">
+            Color
+          </div>
+          <div class="parameter-row" id="color">
+            <input id="color-input" type="color">
+          </div>
+          <div class="parameter-label">
+            Next
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <!--
+    <script src="js/CopyShader.js"></script>
+    <script src="js/EffectComposer.js"></script>
+    <script src="js/MaskPass.js"></script>
+    <script src="js/RenderPass.js"></script>
+    <script src="js/ShaderPass.js"></script>
+    <script src="js/OutlinePass.js"></script>
+  -->
+    <script src="js/TransformControls.js"></script>
+    <script src="js/editor.js"></script>
+  </body>
+</html>
