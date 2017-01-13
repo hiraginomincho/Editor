@@ -172,5 +172,6 @@ canvas {
   font-size: 1rem;
   background-color: #eeeeee;
   color: inherit;
+  outline: none;
   max-width: 100%;
 }
