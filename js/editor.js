@@ -84,9 +84,8 @@ function init() {
   torus.name = "Torus";
   torus.baseHex = torus.material.emissive.getHex();
   scene.add(torus);
-  addToObjectList(torus);
-
   objects.push(torus);
+  addToObjectList(torus);
 
   torus.position.y += 8;
 
@@ -111,29 +110,6 @@ function init() {
 
   raycaster = new THREE.Raycaster();
 
-/*
-  outScene = new THREE.Scene();
-  matShader = new THREE.ShaderMaterial({uniforms: uniforms, vertexShader: shader["outline"].vertex_shader, fragmentShader: shader["outline"].fragment_shader});
-  var outline = new THREE.Mesh(sphereGeometry, matShader);
-  outline.material.depthWrite = false;
-  outline.quaternion = sphere.quaternion;
-  outScene.add(outline);
-  outline.position.y += 8;
-*/
-
-/*
-  var renderPass = new THREE.RenderPass(scene, camera, null, new THREE.Color(0xeeeeee), 0);
-  outlinePass = new THREE.OutlinePass(new THREE.Vector2(renderer.domElement.clientWidth, renderer.domElement.clientHeight), scene, camera);
-  outlinePass.visibleEdgeColor = new THREE.Color(1, 0, 0);
-  var copyPass = new THREE.ShaderPass(THREE.CopyShader);
-  copyPass.renderToScreen = true;
-
-  composer = new THREE.EffectComposer(renderer);
-  composer.addPass(renderPass);
-  composer.addPass(outlinePass);
-  composer.addPass(copyPass);
-  composer.setSize(renderer.domElement.clientWidth * window.devicePixelRatio, renderer.domElement.clientHeight * window.devicePixelRatio);
-*/
   editorDiv.addEventListener("mousemove", onDocumentMouseMove, false);
   editorDiv.addEventListener("mousedown", onDocumentMouseDown, false);
   window.addEventListener("resize", onWindowResize, false);
@@ -160,9 +136,6 @@ function onDocumentMouseDown(event) {
   raycaster.setFromCamera(mouse, camera);
   var intersects = raycaster.intersectObjects(objects);
   if (intersects.length > 0) {
-    //var outline = new THREE.Mesh(intersects[0].geometry, matShader);
-    //outline.material.depthWrite = false;
-    //outline.quaternion = intersects[0].object.quaternion;
     var objectDiv = objectList.children[objects.indexOf(intersects[0].object)];
     objectDiv.classList.remove("object-inactive");
     objectDiv.classList.add("object-active");
@@ -174,25 +147,7 @@ function onDocumentMouseDown(event) {
     transformControls.attach(intersects[0].object);
     CLICKED = intersects[0].object;
     updateBoxes();
-    /*
-    if (CLICKED && CLICKED != intersects[0].object) {
-      CLICKED.material.emissive.setHex(CLICKED.baseHex);
-    }
-
-    CLICKED.material.emissive.setHex(0x444444);
-    */
-
-    //control.setMode("translate");
-    //outScene = new THREE.Scene();
-    //outScene.add(outline);
-  }/* else {
-    transformControls.detach();
-    if (CLICKED) {
-      CLICKED.material.emissive.setHex(CLICKED.baseHex);
-    }
-    CLICKED = null;
-    //scene.remove(transformControls);
-  }*/
+  }
 }
 
 function updateBoxes() {
@@ -235,23 +190,8 @@ function render() {
   requestAnimationFrame(render);
   orbitControls.update();
   transformControls.update();
-  //torus.rotation.x += 0.02;
-  //torus.rotation.y += 0.01;
-  //torus.rotation.z += 0.04;
   raycaster.setFromCamera(mouse, camera);
   var intersects = raycaster.intersectObjects(objects);
-  /*
-  if (INTERSECTED) {
-    console.log("INTERSECTED is " + INTERSECTED.geometry.name);
-  } else {
-    console.log("INTERSECTED is null");
-  }
-  if (CLICKED) {
-    console.log("CLICKED is " + CLICKED.geometry.name);
-  } else {
-    console.log("CLICKED is null");
-  }
-  */
   if (intersects.length > 0) {
     if (INTERSECTED != intersects[0].object) {
       if (INTERSECTED) {
@@ -266,9 +206,6 @@ function render() {
     }
     INTERSECTED = null;
   }
-
-  //composer.render();
-  //renderer.render(outScene, camera);
   renderer.render(scene, camera);
 };
 
@@ -462,77 +399,48 @@ function initParameterControls() {
 function addParameterListeners(box, clickedValue) {
   box.addEventListener("keydown", function(evt) {
     if (evt.keyCode == 13/*Enter*/) {
-      box.value = box.valueAsNumber.toFixed(3);
+      updateParameters(box, clickedValue);
       box.blur();
-      if (CLICKED) {
-        switch (clickedValue) {
-          case "positionx":
-            CLICKED.position.x = box.valueAsNumber;
-            break;
-          case "positiony":
-            CLICKED.position.y = box.valueAsNumber;
-            break;
-          case "positionz":
-            CLICKED.position.z = box.valueAsNumber;
-            break;
-          case "rotationx":
-            CLICKED.rotation.x = box.valueAsNumber * Math.PI / 180;
-            break;
-          case "rotationy":
-            CLICKED.rotation.y = box.valueAsNumber * Math.PI / 180;
-            break;
-          case "rotationz":
-            CLICKED.rotation.z = box.valueAsNumber * Math.PI / 180;
-            break;
-          case "scalex":
-            CLICKED.scale.x = box.valueAsNumber;
-            break;
-          case "scaley":
-            CLICKED.scale.y = box.valueAsNumber;
-            break;
-          case "scalez":
-            CLICKED.scale.z = box.valueAsNumber;
-            break;
-          default:
-            break;
-        }
-      }
     }
   });
   box.addEventListener("blur", function() {
-    box.value = box.valueAsNumber.toFixed(3);
-    if (CLICKED) {
-      switch (clickedValue) {
-        case "positionx":
-          CLICKED.position.x = box.valueAsNumber;
-          break;
-        case "positiony":
-          CLICKED.position.y = box.valueAsNumber;
-          break;
-        case "positionz":
-          CLICKED.position.z = box.valueAsNumber;
-          break;
-        case "rotationx":
-          CLICKED.rotation.x = box.valueAsNumber * Math.PI / 180;
-          break;
-        case "rotationy":
-          CLICKED.rotation.y = box.valueAsNumber * Math.PI / 180;
-          break;
-        case "rotationz":
-          CLICKED.rotation.z = box.valueAsNumber * Math.PI / 180;
-          break;
-        case "scalex":
-          CLICKED.scale.x = box.valueAsNumber;
-          break;
-        case "scaley":
-          CLICKED.scale.y = box.valueAsNumber;
-          break;
-        case "scalez":
-          CLICKED.scale.z = box.valueAsNumber;
-          break;
-        default:
-          break;
-      }
+    updateParameters(box, clickedValue);
+  });
+}
+
+function updateParameters(box, clickedValue) {
+  box.value = box.valueAsNumber.toFixed(3);
+  if (CLICKED) {
+    switch (clickedValue) {
+      case "positionx":
+        CLICKED.position.x = box.valueAsNumber;
+        break;
+      case "positiony":
+        CLICKED.position.y = box.valueAsNumber;
+        break;
+      case "positionz":
+        CLICKED.position.z = box.valueAsNumber;
+        break;
+      case "rotationx":
+        CLICKED.rotation.x = box.valueAsNumber * Math.PI / 180;
+        break;
+      case "rotationy":
+        CLICKED.rotation.y = box.valueAsNumber * Math.PI / 180;
+        break;
+      case "rotationz":
+        CLICKED.rotation.z = box.valueAsNumber * Math.PI / 180;
+        break;
+      case "scalex":
+        CLICKED.scale.x = box.valueAsNumber;
+        break;
+      case "scaley":
+        CLICKED.scale.y = box.valueAsNumber;
+        break;
+      case "scalez":
+        CLICKED.scale.z = box.valueAsNumber;
+        break;
+      default:
+        break;
     }
-  })
+  }
 }
