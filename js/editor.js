@@ -154,18 +154,16 @@ function onDocumentMouseDown(event) {
 }
 
 function updateBoxes() {
-  if (CLICKED) {
-    positionXInput.value = CLICKED.position.x.toFixed(3);
-    positionYInput.value = CLICKED.position.y.toFixed(3);
-    positionZInput.value = CLICKED.position.z.toFixed(3);
-    rotationXInput.value = (CLICKED.rotation.x * 180 / Math.PI).toFixed(3);
-    rotationYInput.value = (CLICKED.rotation.y * 180 / Math.PI).toFixed(3);
-    rotationZInput.value = (CLICKED.rotation.z * 180 / Math.PI).toFixed(3);
-    scaleXInput.value = CLICKED.scale.x.toFixed(3);
-    scaleYInput.value = CLICKED.scale.y.toFixed(3);
-    scaleZInput.value = CLICKED.scale.z.toFixed(3);
-    colorInput.value = "#" + CLICKED.material.color.getHexString();
-  }
+  positionXInput.value = CLICKED.position.x.toFixed(3);
+  positionYInput.value = CLICKED.position.y.toFixed(3);
+  positionZInput.value = CLICKED.position.z.toFixed(3);
+  rotationXInput.value = (CLICKED.rotation.x * 180 / Math.PI).toFixed(3);
+  rotationYInput.value = (CLICKED.rotation.y * 180 / Math.PI).toFixed(3);
+  rotationZInput.value = (CLICKED.rotation.z * 180 / Math.PI).toFixed(3);
+  scaleXInput.value = CLICKED.scale.x.toFixed(3);
+  scaleYInput.value = CLICKED.scale.y.toFixed(3);
+  scaleZInput.value = CLICKED.scale.z.toFixed(3);
+  colorInput.value = "#" + CLICKED.material.color.getHexString();
 }
 
 function updateVisibility() {
@@ -238,7 +236,6 @@ function initControlButtons() {
       objects.splice(objects.indexOf(CLICKED), 1);
       scene.remove(CLICKED);
       CLICKED = null;
-      updateBoxes();
       updateVisibility();
       parameterWrapper2.innerHTML = "";
       objectList.removeChild(objectList.children[index]);
