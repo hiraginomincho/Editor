@@ -102,7 +102,7 @@ function init() {
   scene.add(transformControls);
 
   transformControls.addEventListener("change", function() {
-    updateBoxes();
+    updateInputs();
   });
 
   raycaster = new THREE.Raycaster();
@@ -146,7 +146,7 @@ function focus(object) {
   selectedObjectDiv = objectDiv;
   transformControls.attach(object);
   CLICKED = object;
-  updateBoxes();
+  updateInputs();
   updateVisibility();
   addObjectSpecificParameters();
 }
@@ -160,7 +160,7 @@ function addToScene(object, focusObject) {
   }
 }
 
-function updateBoxes() {
+function updateInputs() {
   positionXInput.value = CLICKED.position.x.toFixed(3);
   positionYInput.value = CLICKED.position.y.toFixed(3);
   positionZInput.value = CLICKED.position.z.toFixed(3);
@@ -351,7 +351,7 @@ function addToObjectList(object) {
     selectedObjectDiv = objectDiv;
     transformControls.attach(object);
     CLICKED = object;
-    updateBoxes();
+    updateInputs();
     updateVisibility();
     addObjectSpecificParameters();
   });
