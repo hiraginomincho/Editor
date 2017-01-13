@@ -171,4 +171,6 @@ canvas {
   font-family: inherit;
   font-size: 1rem;
   background-color: #eeeeee;
+  color: inherit;
+  max-width: 100%;
 }
