@@ -66,18 +66,14 @@ function init() {
   var box = new THREE.Mesh(boxGeometry, boxMaterial);
   box.name = "Box";
   box.baseHex = box.material.emissive.getHex();
-  scene.add(box);
-  objects.push(box);
-  addToObjectList(box);
+  addToScene(box, false);
 
   var sphereGeometry = new THREE.SphereBufferGeometry(2, 16, 16);
   var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x007f00, shading: THREE.FlatShading});
   var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
   sphere.name = "Sphere";
   sphere.baseHex = sphere.material.emissive.getHex();
-  scene.add(sphere);
-  objects.push(sphere);
-  addToObjectList(sphere);
+  addToScene(sphere, false);
 
   sphere.position.y += 8;
 
@@ -86,9 +82,7 @@ function init() {
   torus = new THREE.Mesh(torusGeometry, torusMaterial);
   torus.name = "Torus";
   torus.baseHex = torus.material.emissive.getHex();
-  scene.add(torus);
-  objects.push(torus);
-  addToObjectList(torus);
+  addToScene(torus, false);
 
   torus.position.y += 8;
 
@@ -137,19 +131,32 @@ function onDocumentMouseDown(event) {
   raycaster.setFromCamera(mouse, camera);
   var intersects = raycaster.intersectObjects(objects);
   if (intersects.length > 0) {
-    var objectDiv = objectList.children[objects.indexOf(intersects[0].object)];
-    objectDiv.classList.remove("object-inactive");
-    objectDiv.classList.add("object-active");
-    if (selectedObjectDiv && selectedObjectDiv != objectDiv) {
-      selectedObjectDiv.classList.remove("object-active");
-      selectedObjectDiv.classList.add("object-inactive");
-    }
-    selectedObjectDiv = objectDiv;
-    transformControls.attach(intersects[0].object);
-    CLICKED = intersects[0].object;
-    updateBoxes();
-    updateVisibility();
-    addObjectSpecificParameters();
+    focus(intersects[0].object);
+  }
+}
+
+function focus(object) {
+  var objectDiv = objectList.children[objects.indexOf(object)];
+  objectDiv.classList.remove("object-inactive");
+  objectDiv.classList.add("object-active");
+  if (selectedObjectDiv && selectedObjectDiv != objectDiv) {
+    selectedObjectDiv.classList.remove("object-active");
+    selectedObjectDiv.classList.add("object-inactive");
+  }
+  selectedObjectDiv = objectDiv;
+  transformControls.attach(object);
+  CLICKED = object;
+  updateBoxes();
+  updateVisibility();
+  addObjectSpecificParameters();
+}
+
+function addToScene(object, focusObject) {
+  scene.add(object);
+  objects.push(object);
+  addToObjectList(object);
+  if (focusObject) {
+    focus(object);
   }
 }
 
@@ -259,9 +266,7 @@ function initObjectButtons() {
     var box = new THREE.Mesh(boxGeometry, boxMaterial);
     box.name = "Box";
     box.baseHex = box.material.emissive.getHex();
-    scene.add(box);
-    objects.push(box);
-    addToObjectList(box);
+    addToScene(box, true);
   });
   coneButton.addEventListener("click", function() {
     var coneGeometry = new THREE.ConeBufferGeometry(2, 4, 16);
@@ -269,9 +274,7 @@ function initObjectButtons() {
     var cone = new THREE.Mesh(coneGeometry, coneMaterial);
     cone.name = "Cone";
     cone.baseHex = cone.material.emissive.getHex();
-    scene.add(cone);
-    objects.push(cone);
-    addToObjectList(cone);
+    addToScene(cone, true);
   });
   cylinderButton.addEventListener("click", function() {
     var cylinderGeometry = new THREE.CylinderBufferGeometry(2, 2, 4, 16);
@@ -279,9 +282,7 @@ function initObjectButtons() {
     var cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
     cylinder.name = "Cylinder";
     cylinder.baseHex = cylinder.material.emissive.getHex();
-    scene.add(cylinder);
-    objects.push(cylinder);
-    addToObjectList(cylinder);
+    addToScene(cylinder, true);
   });
   dodecahedronButton.addEventListener("click", function() {
     var dodecahedronGeometry = new THREE.DodecahedronBufferGeometry(2);
@@ -289,9 +290,7 @@ function initObjectButtons() {
     var dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
     dodecahedron.name = "Dodecahedron";
     dodecahedron.baseHex = dodecahedron.material.emissive.getHex();
-    scene.add(dodecahedron);
-    objects.push(dodecahedron);
-    addToObjectList(dodecahedron);
+    addToScene(dodecahedron, true);
   });
   icosahedronButton.addEventListener("click", function() {
     var icosahedronGeometry = new THREE.IcosahedronBufferGeometry(2);
@@ -299,9 +298,7 @@ function initObjectButtons() {
     var icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
     icosahedron.name = "Icosahedron";
     icosahedron.baseHex = icosahedron.material.emissive.getHex();
-    scene.add(icosahedron);
-    objects.push(icosahedron);
-    addToObjectList(icosahedron);
+    addToScene(icosahedron, true);
   });
   octahedronButton.addEventListener("click", function() {
     var octahedronGeometry = new THREE.OctahedronBufferGeometry(2);
@@ -309,9 +306,7 @@ function initObjectButtons() {
     var octahedron = new THREE.Mesh(octahedronGeometry, octahedronMaterial);
     octahedron.name = "Octahedron";
     octahedron.baseHex = octahedron.material.emissive.getHex();
-    scene.add(octahedron);
-    objects.push(octahedron);
-    addToObjectList(octahedron);
+    addToScene(octahedron, true);
   });
   sphereButton.addEventListener("click", function() {
     var sphereGeometry = new THREE.SphereBufferGeometry(2, 16, 16);
@@ -319,9 +314,7 @@ function initObjectButtons() {
     var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.name = "Sphere";
     sphere.baseHex = sphere.material.emissive.getHex();
-    scene.add(sphere);
-    objects.push(sphere);
-    addToObjectList(sphere);
+    addToScene(sphere, true);
   });
   tetrahedronButton.addEventListener("click", function() {
     var tetrahedronGeometry = new THREE.TetrahedronBufferGeometry(2);
@@ -329,9 +322,7 @@ function initObjectButtons() {
     var tetrahedron = new THREE.Mesh(tetrahedronGeometry, tetrahedronMaterial);
     tetrahedron.name = "Tetrahedron";
     tetrahedron.baseHex = tetrahedron.material.emissive.getHex();
-    scene.add(tetrahedron);
-    objects.push(tetrahedron);
-    addToObjectList(tetrahedron);
+    addToScene(tetrahedron, true);
   });
   torusButton.addEventListener("click", function() {
     var torusGeometry = new THREE.TorusBufferGeometry(3, 0.5, 16, 16);
@@ -339,9 +330,7 @@ function initObjectButtons() {
     var torus = new THREE.Mesh(torusGeometry, torusMaterial);
     torus.name = "Torus";
     torus.baseHex = torus.material.emissive.getHex();
-    scene.add(torus);
-    objects.push(torus);
-    addToObjectList(torus);
+    addToScene(torus, true);
   });
 }
 
