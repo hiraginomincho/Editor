@@ -39,6 +39,7 @@ body {
   flex-direction: column;
   padding: 0;
   font-size: 0;
+  height: 100%;
 }
 
 #editor {
@@ -164,4 +165,10 @@ canvas {
 
 #color {
   visibility: hidden;
+}
+
+#color-input {
+  font-family: inherit;
+  font-size: 1rem;
+  background-color: #eeeeee;
 }

@@ -222,7 +222,6 @@ function initControlButtons() {
     scaleButton.classList.add("control-inactive");
     transformControls.setMode("translate");
   });
-
   rotateButton.addEventListener("click", function() {
     rotateButton.classList.remove("control-inactive");
     rotateButton.classList.add("control-active");
@@ -232,7 +231,6 @@ function initControlButtons() {
     scaleButton.classList.add("control-inactive");
     transformControls.setMode("rotate");
   });
-
   scaleButton.addEventListener("click", function() {
     scaleButton.classList.remove("control-inactive");
     scaleButton.classList.add("control-active");
@@ -444,3 +442,5 @@ function updateParameters(box, clickedValue) {
     }
   }
 }
+
+//function addObjectSpecificParameters()
