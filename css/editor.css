@@ -54,7 +54,7 @@ canvas {
 #controls-left {
   background-color: #eeeeee;
   font-size: 0;
-  padding: 1rem;
+  padding: 0.75rem;
   position: absolute;
   bottom: 0;
   left: 0;
@@ -63,21 +63,21 @@ canvas {
 #controls-right {
   background-color: #eeeeee;
   font-size: 0;
-  padding: 1rem;
+  padding: 0.75rem;
   position: absolute;
   bottom: 0;
   right: 0;
 }
 
 .control-button {
-  font-size: 1.5rem;
+  font-size: 1rem;
   display: inline-block;
   padding: 0.5rem;
   cursor: pointer;
 }
 
 .control-button-left {
-  margin-right: 1.5rem;
+  margin-right: 1.0rem;
 }
 
 .control-button-left:last-child {

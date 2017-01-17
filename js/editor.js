@@ -258,6 +258,22 @@ function initControlButtons() {
     rotateButton.classList.add("control-inactive");
     transformControls.setMode("scale");
   });
+  var duplicateButton = document.getElementById("duplicate");
+  duplicateButton.addEventListener("click", function() {
+    if (CLICKED) {
+      var cloneGeometry = CLICKED.geometry.clone();
+      cloneGeometry.parameters = CLICKED.geometry.parameters;
+      cloneGeometry.type = CLICKED.geometry.type;
+      var cloneMaterial = CLICKED.material.clone();
+      var clone = CLICKED.clone();
+      clone.geometry = cloneGeometry;
+      clone.material = cloneMaterial;
+      clone.position.x += 2;
+      clone.position.y += 2;
+      clone.position.z += 2;
+      addToScene(clone, true);
+    }
+  });
   var deleteButton = document.getElementById("delete");
   deleteButton.addEventListener("click", function() {
     if (CLICKED) {
