@@ -77,11 +77,19 @@ canvas {
 }
 
 .control-button-left {
-  margin-right: 1.0rem;
+  margin-right: 1rem;
 }
 
 .control-button-left:last-child {
   margin-right: 0;
+}
+
+.control-button-right {
+  margin-left: 1rem;
+}
+
+.control-button-right:first-child {
+  margin-left: 0;
 }
 
 .control-inactive:hover {
@@ -114,6 +122,8 @@ canvas {
   cursor: pointer;
   overflow: hidden;
   outline: none;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 .object-item[contenteditable="true"] {
@@ -157,8 +167,8 @@ canvas {
 
 .input-text {
   width: 100%;
-  padding-left: 0;
-  padding-right: 0;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
   border: 0;
   background-color: #eeeeee;
   font-family: inherit;

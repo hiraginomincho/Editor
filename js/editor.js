@@ -6,8 +6,6 @@ var onDownPosition = new THREE.Vector2();
 var onUpPosition = new THREE.Vector2();
 var INTERSECTED, CLICKED;
 
-var torus;
-
 var objects = [];
 
 var editorDiv = document.getElementById("editor");
@@ -82,7 +80,7 @@ function init() {
 
   var torusGeometry = new THREE.TorusBufferGeometry(3, 0.5, 16, 16);
   var torusMaterial = new THREE.MeshPhongMaterial({color: 0x00007f, shading: THREE.FlatShading});
-  torus = new THREE.Mesh(torusGeometry, torusMaterial);
+  var torus = new THREE.Mesh(torusGeometry, torusMaterial);
   torus.name = "Torus";
   torus.baseHex = torus.material.emissive.getHex();
   addToScene(torus, false);
@@ -274,6 +272,10 @@ function initControlButtons() {
       addToScene(clone, true);
     }
   });
+  var exportButton = document.getElementById("export");
+  exportButton.addEventListener("click", function() {
+    exportScene();
+  });
   var deleteButton = document.getElementById("delete");
   deleteButton.addEventListener("click", function() {
     if (CLICKED) {
@@ -288,6 +290,90 @@ function initControlButtons() {
       objectList.removeChild(objectList.children[index]);
     }
   });
+  var clearButton = document.getElementById("clear");
+  clearButton.addEventListener("click", function() {
+    clearScene();
+  });
+}
+
+function clearScene() {
+  if (CLICKED) {
+    transformControls.detach();
+  }
+  for (var i = 0; i < objects.length; i++) {
+    scene.remove(objects[i]);
+  }
+  objects = [];
+  CLICKED = null;
+  updateVisibility();
+  parameterWrapper2.innerHTML = "";
+  selectedObjectDiv = null;
+  objectList.innerHTML = "";
+}
+
+function exportScene() {
+  var sceneJSON = [];
+  for (var i = 0; i < objects.length; i++) {
+    var objectJSON = {};
+    var object = objects[i];
+    objectJSON.type = object.geometry.type;
+    objectJSON.name = object.name;
+    objectJSON.positionx = object.position.x;
+    objectJSON.positiony = object.position.y;
+    objectJSON.positionz = object.position.z;
+    objectJSON.rotationx = object.rotation.x;
+    objectJSON.rotationy = object.rotation.y;
+    objectJSON.rotationz = object.rotation.z;
+    objectJSON.scalex = object.scale.x;
+    objectJSON.scaley = object.scale.y;
+    objectJSON.scalez = object.scale.z;
+    objectJSON.color = "#" + object.material.color.getHexString();
+    switch (object.geometry.type) {
+      case "BoxBufferGeometry":
+        objectJSON.boxwidth = object.geometry.parameters.width;
+        objectJSON.boxheight = object.geometry.parameters.height;
+        objectJSON.boxdepth = object.geometry.parameters.depth;
+        break;
+      case "ConeBufferGeometry":
+        objectJSON.coneradius = object.geometry.parameters.radius;
+        objectJSON.coneheight = object.geometry.parameters.height;
+        objectJSON.coneradialsegments = object.geometry.parameters.radialSegments;
+        break;
+      case "CylinderBufferGeometry":
+        objectJSON.cylinderradiustop = object.geometry.parameters.radiusTop;
+        objectJSON.cylinderradiusbottom = object.geometry.parameters.radiusBottom;
+        objectJSON.cylinderheight = object.geometry.parameters.height;
+        objectJSON.cylinderradialsegments = object.geometry.parameters.radialSegments;
+        break;
+      case "DodecahedronBufferGeometry":
+        objectJSON.dodecahedronradius = object.geometry.parameters.radius;
+        break;
+      case "IcosahedronBufferGeometry":
+        objectJSON.icosahedronnradius = object.geometry.parameters.radius;
+        break;
+      case "OctahedronBufferGeometry":
+        objectJSON.octahedronradius = object.geometry.parameters.radius;
+        break;
+      case "SphereBufferGeometry":
+        objectJSON.sphereradius = object.geometry.parameters.radius;
+        objectJSON.spherewidthsegments = object.geometry.parameters.widthSegments;
+        objectJSON.sphereheightsegments = object.geometry.parameters.heightSegments;
+        break;
+      case "TetrahedronBufferGeometry":
+        objectJSON.tetrahedronradius = object.geometry.parameters.radius;
+        break;
+      case "TorusBufferGeometry":
+        objectJSON.torusradius = object.geometry.parameters.radius;
+        objectJSON.torustube = object.geometry.parameters.tube;
+        objectJSON.torusradialsegments = object.geometry.parameters.radialSegments;
+        objectJSON.torustubularsegments = object.geometry.parameters.tubularSegments;
+        break;
+      default:
+        break;
+    }
+    sceneJSON[i] = objectJSON;
+  }
+  window.open("data:application/json," + encodeURIComponent(JSON.stringify(sceneJSON, null, "\t")), "_blank");
 }
 
 function initObjectButtons() {
