@@ -1,7 +1,10 @@
 var scene, transformControls, renderer;
 var camera, orbitControls;
 var raycaster;
-var mouse = new THREE.Vector2(), INTERSECTED, CLICKED;
+var mouse = new THREE.Vector2();
+var onDownPosition = new THREE.Vector2();
+var onUpPosition = new THREE.Vector2();
+var INTERSECTED, CLICKED;
 
 var torus;
 
@@ -107,8 +110,8 @@ function init() {
 
   raycaster = new THREE.Raycaster();
 
-  editorDiv.addEventListener("mousemove", onDocumentMouseMove, false);
-  editorDiv.addEventListener("mousedown", onDocumentMouseDown, false);
+  editorDiv.addEventListener("mousemove", onEditorMouseMove, false);
+  editorDiv.addEventListener("mousedown", onEditorMouseDown, false);
   window.addEventListener("resize", onWindowResize, false);
 }
 
@@ -118,21 +121,38 @@ function onWindowResize() {
   renderer.setSize(editorDiv.clientWidth, editorDiv.clientHeight, false);
 }
 
-function onDocumentMouseMove(event) {
-  event.preventDefault();
-  mouse.x = ((event.clientX - window.innerWidth / 6) / renderer.domElement.clientWidth) * 2 - 1;
-  mouse.y = -((event.clientY - renderer.domElement.offsetTop) / renderer.domElement.clientHeight) * 2 + 1;
+function getMousePosition(event) {
+  var xPos = ((event.clientX - window.innerWidth / 6) / renderer.domElement.clientWidth) * 2 - 1;
+  var yPos = -((event.clientY - renderer.domElement.offsetTop) / renderer.domElement.clientHeight) * 2 + 1;
+  return [xPos, yPos];
 }
 
-function onDocumentMouseDown(event) {
+function onEditorMouseMove(event) {
   event.preventDefault();
-  mouse.x = ((event.clientX - window.innerWidth / 6) / renderer.domElement.clientWidth) * 2 - 1;
-  mouse.y = -((event.clientY - renderer.domElement.offsetTop) / renderer.domElement.clientHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  var intersects = raycaster.intersectObjects(objects);
-  if (intersects.length > 0) {
-    focus(intersects[0].object);
+  mouse.fromArray(getMousePosition(event));
+}
+
+function onEditorMouseDown(event) {
+  event.preventDefault();
+  onDownPosition.fromArray(getMousePosition(event));
+  editorDiv.addEventListener("mouseup", onEditorMouseUp, false);
+}
+
+function onEditorMouseUp(event) {
+  onUpPosition.fromArray(getMousePosition(event));
+  if (onDownPosition.distanceTo(onUpPosition) === 0) {
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(objects);
+    if (intersects.length > 0) {
+      focus(intersects[0].object);
+    } else if (CLICKED) {
+      transformControls.detach();
+      CLICKED = null;
+      updateVisibility();
+      parameterWrapper2.innerHTML = "";
+    }
   }
+  document.removeEventListener("mouseup", onEditorMouseUp, false);
 }
 
 function focus(object) {
@@ -376,7 +396,7 @@ function initParameterControls() {
 
 function addParameterListeners(input, clickedValue) {
   input.addEventListener("keydown", function(evt) {
-    if (evt.keyCode == 13/*Enter*/) {
+    if (evt.keyCode === 13/*Enter*/) {
       input.blur();
     }
   });
@@ -386,7 +406,7 @@ function addParameterListeners(input, clickedValue) {
 }
 
 function updateParameters(input, clickedValue) {
-  if (clickedValue == "coneradialsegments" || clickedValue == "cylinderradialsegments" || clickedValue == "spherewidthsegments" || clickedValue == "sphereheightsegments" || clickedValue == "torusradialsegments" || clickedValue == "torustubularsegments") {
+  if (clickedValue === "coneradialsegments" || clickedValue === "cylinderradialsegments" || clickedValue === "spherewidthsegments" || clickedValue === "sphereheightsegments" || clickedValue === "torusradialsegments" || clickedValue === "torustubularsegments") {
     input.value = Math.abs(input.valueAsNumber.toFixed());
   } else {
     input.value = input.valueAsNumber.toFixed(3);
