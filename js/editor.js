@@ -272,6 +272,20 @@ function initControlButtons() {
       addToScene(clone, true);
     }
   });
+  var importButton = document.getElementById("import");
+  var importJSON = document.getElementById("import-json");
+  importButton.addEventListener("click", function() {
+    importJSON.click();
+  });
+  importJSON.addEventListener("change", function(event) {
+    if (this.value !== "") {
+      var reader = new FileReader();
+      reader.onload = function(event) {
+        importScene(JSON.parse(event.target.result));
+      };
+      reader.readAsText(event.target.files[0]);
+    }
+  });
   var exportButton = document.getElementById("export");
   exportButton.addEventListener("click", function() {
     exportScene();
@@ -294,6 +308,59 @@ function initControlButtons() {
   clearButton.addEventListener("click", function() {
     clearScene();
   });
+}
+
+function importScene(sceneJSON) {
+  for (var i = 0; i < sceneJSON.length; i++) {
+    var objectJSON = sceneJSON[i];
+    var objectGeometry;
+    switch (objectJSON.type) {
+      case "BoxBufferGeometry":
+        var objectGeometry = new THREE.BoxBufferGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth);
+        break;
+      case "ConeBufferGeometry":
+        var objectGeometry = new THREE.ConeBufferGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
+        break;
+      case "CylinderBufferGeometry":
+        var objectGeometry = new THREE.CylinderBufferGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
+        break;
+      case "DodecahedronBufferGeometry":
+        var objectGeometry = new THREE.DodecahedronBufferGeometry(objectJSON.dodecahedronradius);
+        break;
+      case "IcosahedronBufferGeometry":
+        var objectGeometry = new THREE.IcosahedronBufferGeometry(objectJSON.icosahedronradius);
+        break;
+      case "OctahedronBufferGeometry":
+        var objectGeometry = new THREE.OctahedronBufferGeometry(objectJSON.octahedronradius);
+        break;
+      case "SphereBufferGeometry":
+        var objectGeometry = new THREE.SphereBufferGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
+        break;
+      case "TetrahedronBufferGeometry":
+        var objectGeometry = new THREE.TetrahedronBufferGeometry(objectJSON.tetrahedronradius);
+        break;
+      case "TorusBufferGeometry":
+        var objectGeometry = new THREE.TorusBufferGeometry(objectJSON.torusradius, objectJSON.torustube, objectJSON.torusradialsegments, objectJSON.torustubularsegments);
+        break;
+      default:
+        return;
+    }
+    var objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading});
+    var object = new THREE.Mesh(objectGeometry, objectMaterial);
+    object.position.x = objectJSON.positionx;
+    object.position.y = objectJSON.positiony;
+    object.position.z = objectJSON.positionz;
+    object.rotation.x = objectJSON.rotationx;
+    object.rotation.y = objectJSON.rotationy;
+    object.rotation.z = objectJSON.rotationz;
+    object.scale.x = objectJSON.scalex;
+    object.scale.y = objectJSON.scaley;
+    object.scale.z = objectJSON.scalez;
+    object.material.color = new THREE.Color(objectJSON.color);
+    object.name = objectJSON.name;
+    object.baseHex = object.material.emissive.getHex();
+    addToScene(object, false);
+  }
 }
 
 function clearScene() {
@@ -327,7 +394,7 @@ function exportScene() {
     objectJSON.scalex = object.scale.x;
     objectJSON.scaley = object.scale.y;
     objectJSON.scalez = object.scale.z;
-    objectJSON.color = "#" + object.material.color.getHexString();
+    objectJSON.color = object.material.color;
     switch (object.geometry.type) {
       case "BoxBufferGeometry":
         objectJSON.boxwidth = object.geometry.parameters.width;
@@ -349,7 +416,7 @@ function exportScene() {
         objectJSON.dodecahedronradius = object.geometry.parameters.radius;
         break;
       case "IcosahedronBufferGeometry":
-        objectJSON.icosahedronnradius = object.geometry.parameters.radius;
+        objectJSON.icosahedronradius = object.geometry.parameters.radius;
         break;
       case "OctahedronBufferGeometry":
         objectJSON.octahedronradius = object.geometry.parameters.radius;
