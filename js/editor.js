@@ -150,6 +150,9 @@ function onEditorMouseUp(event) {
       CLICKED = null;
       updateVisibility();
       parameterWrapper2.innerHTML = "";
+      selectedObjectDiv.classList.remove("object-active");
+      selectedObjectDiv.classList.add("object-inactive");
+      selectedObjectDiv = null;
     }
   }
   document.removeEventListener("mouseup", onEditorMouseUp, false);
@@ -265,6 +268,7 @@ function initControlButtons() {
       CLICKED = null;
       updateVisibility();
       parameterWrapper2.innerHTML = "";
+      selectedObjectDiv = null;
       objectList.removeChild(objectList.children[index]);
     }
   });
