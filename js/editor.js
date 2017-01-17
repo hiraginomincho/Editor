@@ -110,9 +110,9 @@ function init() {
 
   raycaster = new THREE.Raycaster();
 
-  editorDiv.addEventListener("mousemove", onEditorMouseMove, false);
-  editorDiv.addEventListener("mousedown", onEditorMouseDown, false);
-  window.addEventListener("resize", onWindowResize, false);
+  editorDiv.addEventListener("mousemove", onEditorMouseMove);
+  editorDiv.addEventListener("mousedown", onEditorMouseDown);
+  window.addEventListener("resize", onWindowResize);
 }
 
 function onWindowResize() {
@@ -135,7 +135,7 @@ function onEditorMouseMove(event) {
 function onEditorMouseDown(event) {
   event.preventDefault();
   onDownPosition.fromArray(getMousePosition(event));
-  editorDiv.addEventListener("mouseup", onEditorMouseUp, false);
+  editorDiv.addEventListener("mouseup", onEditorMouseUp);
 }
 
 function onEditorMouseUp(event) {
@@ -155,7 +155,7 @@ function onEditorMouseUp(event) {
       selectedObjectDiv = null;
     }
   }
-  document.removeEventListener("mouseup", onEditorMouseUp, false);
+  document.removeEventListener("mouseup", onEditorMouseUp);
 }
 
 function focus(object) {
@@ -359,11 +359,10 @@ function initObjectButtons() {
 }
 
 function addToObjectList(object) {
-  var s = object.name;
   var objectDiv = document.createElement("div");
   objectDiv.classList.add("object-item");
   objectDiv.classList.add("object-inactive");
-  objectDiv.innerHTML = s;
+  objectDiv.innerHTML = object.name;
   objectList.appendChild(objectDiv);
   objectDiv.addEventListener("click", function() {
     objectDiv.classList.remove("object-inactive");
@@ -379,6 +378,31 @@ function addToObjectList(object) {
     updateVisibility();
     addObjectSpecificParameters();
   });
+  objectDiv.addEventListener("dblclick", function() {
+    makeEditable(objectDiv);
+  });
+  objectDiv.addEventListener("keydown", function(event) {
+    if (event.keyCode === 13/*Enter*/) {
+      objectDiv.blur();
+    }
+  });
+  objectDiv.addEventListener("blur", function() {
+    if (objectDiv.innerHTML === "") {
+      objectDiv.innerHTML = "Object";
+    }
+    object.name = objectDiv.innerHTML;
+    objectDiv.contentEditable = false;
+  });
+}
+
+function makeEditable(objectDiv) {
+  objectDiv.contentEditable = true;
+  var range = document.createRange();
+  var sel = window.getSelection();
+  range.setStart(objectDiv.childNodes[0], objectDiv.childNodes[0].length);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function initParameterControls() {
@@ -399,8 +423,8 @@ function initParameterControls() {
 }
 
 function addParameterListeners(input, clickedValue) {
-  input.addEventListener("keydown", function(evt) {
-    if (evt.keyCode === 13/*Enter*/) {
+  input.addEventListener("keydown", function(event) {
+    if (event.keyCode === 13/*Enter*/) {
       input.blur();
     }
   });
@@ -410,6 +434,12 @@ function addParameterListeners(input, clickedValue) {
 }
 
 function updateParameters(input, clickedValue) {
+  if (!CLICKED) {
+    return;
+  }
+  if (input.value === "") {
+    input.value = (0).toFixed(3);
+  }
   if (clickedValue === "coneradialsegments" || clickedValue === "cylinderradialsegments" || clickedValue === "spherewidthsegments" || clickedValue === "sphereheightsegments" || clickedValue === "torusradialsegments" || clickedValue === "torustubularsegments") {
     input.value = Math.abs(input.valueAsNumber.toFixed());
   } else {

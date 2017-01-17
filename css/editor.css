@@ -113,6 +113,11 @@ canvas {
   font-size: 1rem;
   cursor: pointer;
   overflow: hidden;
+  outline: none;
+}
+
+.object-item[contenteditable="true"] {
+  background-color: #ffffff !important;
 }
 
 .object-inactive:hover {
@@ -159,6 +164,10 @@ canvas {
   font-family: inherit;
   outline: none;
   color: inherit;
+}
+
+.input-text:focus {
+  background-color: #ffffff;
 }
 
 #color-input {
