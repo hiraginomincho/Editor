@@ -50,7 +50,7 @@ function init() {
   camera.position.y = 20;
   camera.position.z = 10;
 
-  camera.lookAt(new THREE.Vector3(0,0,0));
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
   orbitControls.enableDamping = true;
