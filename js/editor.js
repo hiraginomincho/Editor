@@ -316,31 +316,31 @@ function importScene(sceneJSON) {
     var objectGeometry;
     switch (objectJSON.type) {
       case "BoxBufferGeometry":
-        var objectGeometry = new THREE.BoxBufferGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth);
+        objectGeometry = new THREE.BoxBufferGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth);
         break;
       case "ConeBufferGeometry":
-        var objectGeometry = new THREE.ConeBufferGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
+        objectGeometry = new THREE.ConeBufferGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
         break;
       case "CylinderBufferGeometry":
-        var objectGeometry = new THREE.CylinderBufferGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
+        objectGeometry = new THREE.CylinderBufferGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
         break;
       case "DodecahedronBufferGeometry":
-        var objectGeometry = new THREE.DodecahedronBufferGeometry(objectJSON.dodecahedronradius);
+        objectGeometry = new THREE.DodecahedronBufferGeometry(objectJSON.dodecahedronradius);
         break;
       case "IcosahedronBufferGeometry":
-        var objectGeometry = new THREE.IcosahedronBufferGeometry(objectJSON.icosahedronradius);
+        objectGeometry = new THREE.IcosahedronBufferGeometry(objectJSON.icosahedronradius);
         break;
       case "OctahedronBufferGeometry":
-        var objectGeometry = new THREE.OctahedronBufferGeometry(objectJSON.octahedronradius);
+        objectGeometry = new THREE.OctahedronBufferGeometry(objectJSON.octahedronradius);
         break;
       case "SphereBufferGeometry":
-        var objectGeometry = new THREE.SphereBufferGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
+        objectGeometry = new THREE.SphereBufferGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
         break;
       case "TetrahedronBufferGeometry":
-        var objectGeometry = new THREE.TetrahedronBufferGeometry(objectJSON.tetrahedronradius);
+        objectGeometry = new THREE.TetrahedronBufferGeometry(objectJSON.tetrahedronradius);
         break;
       case "TorusBufferGeometry":
-        var objectGeometry = new THREE.TorusBufferGeometry(objectJSON.torusradius, objectJSON.torustube, objectJSON.torusradialsegments, objectJSON.torustubularsegments);
+        objectGeometry = new THREE.TorusBufferGeometry(objectJSON.torusradius, objectJSON.torustube, objectJSON.torusradialsegments, objectJSON.torustubularsegments);
         break;
       default:
         return;
