@@ -46,10 +46,7 @@ function init() {
   editorDiv.appendChild(renderer.domElement);
 
   camera = new THREE.PerspectiveCamera(60, renderer.domElement.clientWidth / renderer.domElement.clientHeight, 0.1, 10000);
-  camera.position.x = 20;
-  camera.position.y = 20;
-  camera.position.z = 10;
-
+  camera.position.set(20, 20, 10);
   camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -266,9 +263,7 @@ function initControlButtons() {
       var clone = CLICKED.clone();
       clone.geometry = cloneGeometry;
       clone.material = cloneMaterial;
-      clone.position.x += 2;
-      clone.position.y += 2;
-      clone.position.z += 2;
+      clone.position.addScalar(2);
       addToScene(clone, true);
     }
   });
@@ -347,15 +342,9 @@ function importScene(sceneJSON) {
     }
     var objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading});
     var object = new THREE.Mesh(objectGeometry, objectMaterial);
-    object.position.x = objectJSON.positionx;
-    object.position.y = objectJSON.positiony;
-    object.position.z = objectJSON.positionz;
-    object.rotation.x = objectJSON.rotationx;
-    object.rotation.y = objectJSON.rotationy;
-    object.rotation.z = objectJSON.rotationz;
-    object.scale.x = objectJSON.scalex;
-    object.scale.y = objectJSON.scaley;
-    object.scale.z = objectJSON.scalez;
+    object.position.set(objectJSON.positionx, objectJSON.positiony, objectJSON.positionz);
+    object.rotation.set(objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz);
+    object.scale.set(objectJSON.scalex, objectJSON.scaley, objectJSON.scalez);
     object.material.color = new THREE.Color(objectJSON.color);
     object.name = objectJSON.name;
     object.baseHex = object.material.emissive.getHex();
