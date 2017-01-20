@@ -194,7 +194,7 @@ function initEditor(fromStart) {
 
     scene = new THREE.Scene();
 
-    var gridHelper = new THREE.GridHelper(16, 16, 0xaaaaaa, 0xcccccc);
+    var gridHelper = new THREE.GridHelper(32, 32, 0xaaaaaa, 0xcccccc);
     scene.add(gridHelper);
 
     if (fromStart) {
