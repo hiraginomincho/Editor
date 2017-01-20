@@ -988,6 +988,15 @@ function initVR() {
   var scene, vrControls, vrEffect, renderer;
   var camera, vrDisplay;
 
+  var physicsWorld;
+
+  var rigidBodies = [];
+
+  var margin = 0.05;
+
+  var clock = new THREE.Clock();
+  var transformAux1 = new Ammo.btTransform();
+
   init();
 
   function init() {
@@ -998,14 +1007,14 @@ function initVR() {
     //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    Physijs.scripts.worker = "js/physijs_worker.js";
-    Physijs.scripts.ammo = "ammo.js";
+    //Physijs.scripts.worker = "js/physijs_worker.js";
+    //Physijs.scripts.ammo = "ammo.js";
 
-    scene = new Physijs.Scene({fixedTimeStep: 1 / 120});
-    scene.setGravity(new THREE.Vector3(0, -10, 0));
+    scene = new THREE.Scene();
+    //scene.setGravity(new THREE.Vector3(0, -10, 0));
 
     var dummy = new THREE.Camera();
-    dummy.position.set(60, 60, 60);
+    dummy.position.set(30, 20, 60);
     dummy.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(dummy);
 
@@ -1028,8 +1037,6 @@ function initVR() {
     directionalLight2.position.set(-2, -8, -1).normalize();
     scene.add(directionalLight2);
 
-    importScene(JSON.parse(sceneJSONString));
-
   /*
     directionalLight1.shadow.mapSize.width = 1024;
     directionalLight1.shadow.mapSize.height = 1024;
@@ -1050,14 +1057,74 @@ function initVR() {
     scene.add(cube);
 */
 
-    var groundGeometry = new THREE.BoxGeometry(150, 1, 150);
+    var collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+    var dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+    var broadphase = new Ammo.btDbvtBroadphase();
+    var solver = new Ammo.btSequentialImpulseConstraintSolver();
+    physicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+    physicsWorld.setGravity(new Ammo.btVector3(0, -98, 0));
+
+    var groundGeometry = new THREE.BoxGeometry(500, 1, 500);
     var groundMaterial = new THREE.MeshPhongMaterial({color: 0x123456, shading: THREE.FlatShading});
-    var ground = new Physijs.BoxMesh(groundGeometry, groundMaterial, 0);
+    var ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    var groundShape = new Ammo.btBoxShape(new Ammo.btVector3(250, 0.5, 250));
+    groundShape.setMargin(margin);
     //ground.castShadow = true;
     //ground.receiveShadow = true;
     ground.position.y = -30;
+    createRigidBody(ground, groundShape, 0);
+
+    importScene(JSON.parse(sceneJSONString));
     //ground.rotation.x = -0.1;
-    scene.add(ground);
+    //scene.add(ground);
+
+/*
+    var boxGeometry = new THREE.BoxGeometry(8, 8, 8);
+    var boxMaterial = new THREE.MeshPhongMaterial({color: 0x654321, shading: THREE.FlatShading});
+    var box = new THREE.Mesh(boxGeometry, boxMaterial);
+    var boxShape = new Ammo.btBoxShape(new Ammo.btVector3(4, 4, 4));
+    box.position.y = 15;
+    boxShape.setMargin(margin);
+    createRigidBody(box, boxShape, 64);
+
+    var ballGeometry = new THREE.SphereGeometry(4, 16, 16);
+    var ballMaterial = new THREE.MeshPhongMaterial({color: 0x7f7fff, shading: THREE.FlatShading});
+    var ball = new THREE.Mesh(ballGeometry, ballMaterial);
+    var ballShape = new Ammo.btSphereShape(4);
+    ball.position.x = 5;
+    ballShape.setMargin(margin);
+    createRigidBody(ball, ballShape, 30);
+
+    var icoGeometry = new THREE.IcosahedronGeometry(5);
+    var icoMaterial = new THREE.MeshPhongMaterial({color: 0x7f7f00, shading: THREE.FlatShading});
+    var ico = new THREE.Mesh(icoGeometry, icoMaterial);
+    var icoShape = new Ammo.btConvexHullShape();
+    for (i = 0; i < icoGeometry.vertices.length; i++) {
+      icoShape.addPoint(new Ammo.btVector3(icoGeometry.vertices[i].x, icoGeometry.vertices[i].y, icoGeometry.vertices[i].z));
+    }
+    ico.position.y = 50;
+    icoShape.setMargin(margin);
+    createRigidBody(ico, icoShape, 10);
+
+    var torusGeometry = new THREE.TorusGeometry(15, 2, 16, 16);
+    var torusMaterial = new THREE.MeshPhongMaterial({color: 0x7fff7f, shading: THREE.FlatShading});
+    var torus = new THREE.Mesh(torusGeometry, torusMaterial);
+    var triangleMesh = new Ammo.btTriangleMesh();
+    for (i = 0; i < torusGeometry.faces.length; i++) {
+      var face = torusGeometry.faces[i];
+      var vertex1 = new Ammo.btVector3(torusGeometry.vertices[face.a].x, torusGeometry.vertices[face.a].y, torusGeometry.vertices[face.a].z);
+      var vertex2 = new Ammo.btVector3(torusGeometry.vertices[face.b].x, torusGeometry.vertices[face.b].y, torusGeometry.vertices[face.b].z);
+      var vertex3 = new Ammo.btVector3(torusGeometry.vertices[face.c].x, torusGeometry.vertices[face.c].y, torusGeometry.vertices[face.c].z);
+      triangleMesh.addTriangle(vertex1, vertex2, vertex3, true);
+    }
+    var torusShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true, true);
+    //var torusShape = new Ammo.btGimpactMeshShape(triangleMesh);
+    torus.position.y = -15;
+    torus.position.x = 10;
+    torus.rotation.x = Math.PI / 4;
+    torusShape.setMargin(margin);
+    createRigidBody(torus, torusShape, 5);
+*/
 
     Reticulum.init(camera, {
         proximity: false,
@@ -1098,6 +1165,25 @@ function initVR() {
 
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("vrdisplaypresentchange", onWindowResize);
+  }
+
+  function createRigidBody(object, physicsShape, mass) {
+    var transform = new Ammo.btTransform();
+    transform.setIdentity();
+    transform.setOrigin(new Ammo.btVector3(object.position.x, object.position.y, object.position.z));
+    transform.setRotation(new Ammo.btQuaternion(object.quaternion.x, object.quaternion.y, object.quaternion.z, object.quaternion.w));
+    var motionState = new Ammo.btDefaultMotionState(transform);
+    var localInertia = new Ammo.btVector3(0, 0, 0);
+    physicsShape.calculateLocalInertia(mass, localInertia);
+    var rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, physicsShape, localInertia);
+    var body = new Ammo.btRigidBody(rbInfo);
+    object.userData.physicsBody = body;
+    scene.add(object);
+    if (mass > 0) {
+      rigidBodies.push(object);
+      body.setActivationState(4);
+    }
+    physicsWorld.addRigidBody(body);
   }
 
   function importScene(sceneJSON) {
@@ -1141,18 +1227,34 @@ function initVR() {
         v.z = v.z * objectJSON.scalez;
       });
       var objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading});
-      var object;
+      var object = new THREE.Mesh(objectGeometry, objectMaterial);
+      var objectShape;
       //object = new Physijs.ConcaveMesh(objectGeometry, objectMaterial);
       if (objectJSON.type === "TorusBufferGeometry") {
-        object = new Physijs.ConcaveMesh(objectGeometry, objectMaterial);
+        continue;
+        /*
+        var triangleMesh = new Ammo.btTriangleMesh();
+        for (var j = 0; j < objectGeometry.faces.length; j++) {
+          var face = objectGeometry.faces[j];
+          var vertex1 = new Ammo.btVector3(objectGeometry.vertices[face.a].x, objectGeometry.vertices[face.a].y, objectGeometry.vertices[face.a].z);
+          var vertex2 = new Ammo.btVector3(objectGeometry.vertices[face.b].x, objectGeometry.vertices[face.b].y, objectGeometry.vertices[face.b].z);
+          var vertex3 = new Ammo.btVector3(objectGeometry.vertices[face.c].x, objectGeometry.vertices[face.c].y, objectGeometry.vertices[face.c].z);
+          triangleMesh.addTriangle(vertex1, vertex2, vertex3, true);
+        }
+        objectShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true, true);
+        */
       } else {
-        object = new Physijs.ConvexMesh(objectGeometry, objectMaterial);
+        objectShape = new Ammo.btConvexHullShape();
+        for (var j = 0; j < objectGeometry.vertices.length; j++) {
+          objectShape.addPoint(new Ammo.btVector3(objectGeometry.vertices[j].x, objectGeometry.vertices[j].y, objectGeometry.vertices[j].z));
+        }
       }
       object.position.set(objectJSON.positionx, objectJSON.positiony, objectJSON.positionz);
       object.rotation.set(objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz);
+      objectShape.setMargin(margin);
       object.material.color = new THREE.Color(objectJSON.color);
       object.name = objectJSON.name;
-      scene.add(object);
+      createRigidBody(object, objectShape, 10);
     }
   }
 
@@ -1165,10 +1267,25 @@ function initVR() {
   function render() {
     if (!editing) {
       vrDisplay.requestAnimationFrame(render);
+      var deltaTime = clock.getDelta();
+      updatePhysics(deltaTime);
       vrControls.update();
-      scene.simulate();
       Reticulum.update();
       vrEffect.render(scene, camera);
+    }
+  }
+
+  function updatePhysics(deltaTime) {
+    physicsWorld.stepSimulation(deltaTime, 10);
+    for (var i = 0; i < rigidBodies.length; i++) {
+      var ms = rigidBodies[i].userData.physicsBody.getMotionState();
+      if (ms) {
+        ms.getWorldTransform(transformAux1);
+        var p = transformAux1.getOrigin();
+        var q = transformAux1.getRotation();
+        rigidBodies[i].position.set(p.x(),p.y(),p.z());
+        rigidBodies[i].quaternion.set(q.x(), q.y(), q.z(), q.w());
+      }
     }
   }
 }
