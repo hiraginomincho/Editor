@@ -1,9 +1,13 @@
+"use strict";
+
 var objects = [];
 
 var sceneJSONString;
 
 var editing = true;
 var cameraPos;
+
+var renderer = new THREE.WebGLRenderer();
 
 function initEditor(fromStart) {
   editing = true;
@@ -138,7 +142,7 @@ function initEditor(fromStart) {
 
   objects = [];
 
-  var scene, transformControls, renderer;
+  var scene, transformControls;
   var camera, orbitControls;
   var raycaster;
   var mouse = new THREE.Vector2();
@@ -177,8 +181,8 @@ function initEditor(fromStart) {
   initParameterControls();
 
   function init() {
-    renderer = new THREE.WebGLRenderer();//{antialias:true});
-    renderer.setSize(editorDiv.clientWidth, editorDiv.clientHeight, false);
+    //renderer = new THREE.WebGLRenderer();//{antialias:true});
+    renderer.setSize(editorDiv.clientWidth, editorDiv.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setClearColor(0xeeeeee);
     editorDiv.appendChild(renderer.domElement);
@@ -248,15 +252,15 @@ function initEditor(fromStart) {
 
     raycaster = new THREE.Raycaster();
 
-    editorDiv.addEventListener("mousemove", onEditorMouseMove);
-    editorDiv.addEventListener("mousedown", onEditorMouseDown);
+    editorDiv.children[0].addEventListener("mousemove", onEditorMouseMove);
+    editorDiv.children[0].addEventListener("mousedown", onEditorMouseDown);
     window.addEventListener("resize", onWindowResize);
   }
 
   function onWindowResize() {
     camera.aspect = editorDiv.clientWidth / editorDiv.clientHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(editorDiv.clientWidth, editorDiv.clientHeight, false);
+    renderer.setSize(editorDiv.clientWidth, editorDiv.clientHeight);
   }
 
   function getMousePosition(event) {
@@ -293,7 +297,7 @@ function initEditor(fromStart) {
         selectedObjectDiv = null;
       }
     }
-    document.removeEventListener("mouseup", onEditorMouseUp);
+    editorDiv.children[0].removeEventListener("mouseup", onEditorMouseUp);
   }
 
   function focus(object) {
@@ -433,7 +437,9 @@ function initEditor(fromStart) {
     var vrButton = document.getElementById("vr");
     vrButton.addEventListener("click", function() {
       sceneJSONString = generateSceneJSONString();
-      cameraPos = camera.position;
+      cameraPos = camera.position.clone();
+      renderer.dispose();
+      window.removeEventListener("resize", onWindowResize);
       initVR();
     });
     var deleteButton = document.getElementById("delete");
@@ -982,10 +988,13 @@ function initVR() {
 
   var returnButton = document.getElementById("return-to-editor");
   returnButton.addEventListener("click", function() {
+    renderer.dispose();
+    window.removeEventListener("resize", onWindowResize);
+    window.removeEventListener("vrdisplaypresentchange", onWindowResize);
     initEditor(false);
   });
 
-  var scene, vrControls, vrEffect, renderer;
+  var scene, vrControls, vrEffect;
   var camera, vrDisplay;
 
   var physicsWorld;
@@ -1000,8 +1009,8 @@ function initVR() {
   init();
 
   function init() {
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    //renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     //renderer.shadowMap.enabled = true;
     //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1022,7 +1031,6 @@ function initVR() {
     dummy.add(camera);
 
     vrControls = new THREE.VRControls(camera);
-    camera.position.z = 5;
     vrEffect = new THREE.VREffect(renderer);
     vrEffect.setSize(window.innerWidth, window.innerHeight);
 
@@ -1271,7 +1279,7 @@ function initVR() {
       updatePhysics(deltaTime);
       vrControls.update();
       Reticulum.update();
-      vrEffect.render(scene, camera);
+      renderer.render(scene, camera);
     }
   }
 
