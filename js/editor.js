@@ -1279,7 +1279,7 @@ function initVR() {
       updatePhysics(deltaTime);
       vrControls.update();
       Reticulum.update();
-      renderer.render(scene, camera);
+      vrEffect.render(scene, camera);
     }
   }
 
