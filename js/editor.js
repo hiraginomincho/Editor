@@ -1,7 +1,5 @@
 "use strict";
 
-var objects = [];
-
 var sceneJSONString;
 
 var editing = true;
@@ -140,7 +138,7 @@ function initEditor(fromStart) {
     "</div>" +
   "</div>";
 
-  objects = [];
+  var objects = [];
 
   var scene, transformControls;
   var camera, orbitControls;
@@ -428,6 +426,7 @@ function initEditor(fromStart) {
           importScene(JSON.parse(event.target.result));
         };
         reader.readAsText(event.target.files[0]);
+        this.value = "";
       }
     });
     var exportButton = document.getElementById("export");
@@ -995,7 +994,7 @@ function initVR() {
   });
 
   var scene, vrControls, vrEffect;
-  var camera, vrDisplay;
+  var dummy, camera;
 
   var physicsWorld;
 
@@ -1006,7 +1005,12 @@ function initVR() {
   var clock = new THREE.Clock();
   var transformAux1 = new Ammo.btTransform();
 
+  var idToObject = {};
+  var idToPhysicsBody = {};
+  var id = -1;
+
   init();
+  render();
 
   function init() {
     //renderer = new THREE.WebGLRenderer();
@@ -1022,12 +1026,13 @@ function initVR() {
     scene = new THREE.Scene();
     //scene.setGravity(new THREE.Vector3(0, -10, 0));
 
-    var dummy = new THREE.Camera();
+    dummy = new THREE.Camera();
     dummy.position.set(30, 20, 60);
     dummy.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(dummy);
 
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10000);
+    camera.position.set(0, 0, 0);
     dummy.add(camera);
 
     vrControls = new THREE.VRControls(camera);
@@ -1079,7 +1084,7 @@ function initVR() {
     groundShape.setMargin(margin);
     //ground.castShadow = true;
     //ground.receiveShadow = true;
-    ground.position.y = -30;
+    ground.position.y = -0.5;
     createRigidBody(ground, groundShape, 0);
 
     importScene(JSON.parse(sceneJSONString));
@@ -1165,17 +1170,16 @@ function initVR() {
     });
 
     navigator.getVRDisplays().then(function(displays) {
-      if (displays.length > 0) {
-        vrDisplay = displays[0];
-        vrDisplay.requestAnimationFrame(render);
-      }
-    });
+        vrEffect.setVRDisplay(displays[0]);
+        vrControls.setVRDisplay(displays[0]);
+      }).catch(function() {
+      });
 
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("vrdisplaypresentchange", onWindowResize);
   }
 
-  function createRigidBody(object, physicsShape, mass) {
+  function createRigidBody(object, physicsShape, mass, id) {
     var transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(object.position.x, object.position.y, object.position.z));
@@ -1192,6 +1196,7 @@ function initVR() {
       body.setActivationState(4);
     }
     physicsWorld.addRigidBody(body);
+    idToPhysicsBody[id] = body;
   }
 
   function importScene(sceneJSON) {
@@ -1260,9 +1265,10 @@ function initVR() {
       object.position.set(objectJSON.positionx, objectJSON.positiony, objectJSON.positionz);
       object.rotation.set(objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz);
       objectShape.setMargin(margin);
-      object.material.color = new THREE.Color(objectJSON.color);
       object.name = objectJSON.name;
-      createRigidBody(object, objectShape, 10);
+      id++;
+      createRigidBody(object, objectShape, 10, id);
+      idToObject[id] = object;
     }
   }
 
@@ -1274,7 +1280,7 @@ function initVR() {
 
   function render() {
     if (!editing) {
-      vrDisplay.requestAnimationFrame(render);
+      vrEffect.requestAnimationFrame(render);
       var deltaTime = clock.getDelta();
       updatePhysics(deltaTime);
       vrControls.update();
@@ -1296,6 +1302,433 @@ function initVR() {
       }
     }
   }
+
+  addBox = function addBox(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7f7f00, width = 4, height = 4, depth = 4) {
+    var boxGeometry = new THREE.BoxGeometry(width, height, depth);
+    boxGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var boxMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var box = new THREE.Mesh(boxGeometry, boxMaterial);
+    var boxShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < boxGeometry.vertices.length; i++) {
+      boxShape.addPoint(new Ammo.btVector3(boxGeometry.vertices[i].x, boxGeometry.vertices[i].y, boxGeometry.vertices[i].z));
+    }
+    box.position.set(positionx, positiony, positionz);
+    box.rotation.set(rotationx, rotationy, rotationz);
+    boxShape.setMargin(margin);
+    id++;
+    createRigidBody(box, boxShape, 10, id);
+    idToObject[id] = box;
+    return id;
+  }
+
+  addCone = function addCone(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7f007f, radius = 2, height = 4, radialSegments = 16) {
+    var coneGeometry = new THREE.ConeGeometry(radius, height, radialSegments);
+    coneGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var coneMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var cone = new THREE.Mesh(coneGeometry, coneMaterial);
+    var coneShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < coneGeometry.vertices.length; i++) {
+      coneShape.addPoint(new Ammo.btVector3(coneGeometry.vertices[i].x, coneGeometry.vertices[i].y, coneGeometry.vertices[i].z));
+    }
+    cone.position.set(positionx, positiony, positionz);
+    cone.rotation.set(rotationx, rotationy, rotationz);
+    coneShape.setMargin(margin);
+    id++;
+    createRigidBody(cone, coneShape, 10, id);
+    idToObject[id] = cone;
+    return id;
+  }
+
+  addCylinder = function addCylinder(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x007f7f, radiusTop = 2, radiusBottom = 2, height = 4, radialSegments = 16) {
+    var cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
+    cylinderGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var cylinderMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+    var cylinderShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < cylinderGeometry.vertices.length; i++) {
+      cylinderShape.addPoint(new Ammo.btVector3(cylinderGeometry.vertices[i].x, cylinderGeometry.vertices[i].y, cylinderGeometry.vertices[i].z));
+    }
+    cylinder.position.set(positionx, positiony, positionz);
+    cylinder.rotation.set(rotationx, rotationy, rotationz);
+    cylinderShape.setMargin(margin);
+    id++;
+    createRigidBody(cylinder, cylinderShape, 10, id);
+    idToObject[id] = cylinder;
+    return id;
+  }
+
+  addDodecahedron = function addDodecahedron(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7f7fff, radius = 2) {
+    var dodecahedronGeometry = new THREE.DodecahedronGeometry(radius);
+    dodecahedronGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var dodecahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
+    var dodecahedronShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < dodecahedronGeometry.vertices.length; i++) {
+      dodecahedronShape.addPoint(new Ammo.btVector3(dodecahedronGeometry.vertices[i].x, dodecahedronGeometry.vertices[i].y, dodecahedronGeometry.vertices[i].z));
+    }
+    dodecahedron.position.set(positionx, positiony, positionz);
+    dodecahedron.rotation.set(rotationx, rotationy, rotationz);
+    dodecahedronShape.setMargin(margin);
+    id++;
+    createRigidBody(dodecahedron, dodecahedronShape, 10, id);
+    idToObject[id] = dodecahedron;
+    return id;
+  }
+
+  addIcosahedron = function addIcosahedron(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7fff7f, radius = 2) {
+    var icosahedronGeometry = new THREE.IcosahedronGeometry(radius);
+    icosahedronGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var icosahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
+    var icosahedronShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < icosahedronGeometry.vertices.length; i++) {
+      icosahedronShape.addPoint(new Ammo.btVector3(icosahedronGeometry.vertices[i].x, icosahedronGeometry.vertices[i].y, icosahedronGeometry.vertices[i].z));
+    }
+    icosahedron.position.set(positionx, positiony, positionz);
+    icosahedron.rotation.set(rotationx, rotationy, rotationz);
+    icosahedronShape.setMargin(margin);
+    id++;
+    createRigidBody(icosahedron, icosahedronShape, 10, id);
+    idToObject[id] = icosahedron;
+    return id;
+  }
+
+  addOctahedron = function addOctahedron(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0xff7f7f, radius = 2) {
+    var octahedronGeometry = new THREE.OctahedronGeometry(radius);
+    octahedronGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var octahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var octahedron = new THREE.Mesh(octahedronGeometry, octahedronMaterial);
+    var octahedronShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < octahedronGeometry.vertices.length; i++) {
+      octahedronShape.addPoint(new Ammo.btVector3(octahedronGeometry.vertices[i].x, octahedronGeometry.vertices[i].y, octahedronGeometry.vertices[i].z));
+    }
+    octahedron.position.set(positionx, positiony, positionz);
+    octahedron.rotation.set(rotationx, rotationy, rotationz);
+    octahedronShape.setMargin(margin);
+    id++;
+    createRigidBody(octahedron, octahedronShape, 10, id);
+    idToObject[id] = octahedron;
+    return id;
+  }
+
+  addSphere = function addSphere(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0xffff7f, radius = 2, widthSegments = 16, heightSegments = 16) {
+    var sphereGeometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
+    sphereGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var sphereMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    var sphereShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < sphereGeometry.vertices.length; i++) {
+      sphereShape.addPoint(new Ammo.btVector3(sphereGeometry.vertices[i].x, sphereGeometry.vertices[i].y, sphereGeometry.vertices[i].z));
+    }
+    sphere.position.set(positionx, positiony, positionz);
+    sphere.rotation.set(rotationx, rotationy, rotationz);
+    sphereShape.setMargin(margin);
+    id++;
+    createRigidBody(sphere, sphereShape, 10, id);
+    idToObject[id] = sphere;
+    return id;
+  }
+
+  addTetrahedron = function addTetrahedron(positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0xff7fff, radius = 2) {
+    var tetrahedronGeometry = new THREE.TetrahedronGeometry(radius);
+    tetrahedronGeometry.vertices.forEach(function(v) {
+      v.x = v.x * scalex;
+      v.y = v.y * scaley;
+      v.z = v.z * scalez;
+    });
+    var tetrahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var tetrahedron = new THREE.Mesh(tetrahedronGeometry, tetrahedronMaterial);
+    var tetrahedronShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < tetrahedronGeometry.vertices.length; i++) {
+      tetrahedronShape.addPoint(new Ammo.btVector3(tetrahedronGeometry.vertices[i].x, tetrahedronGeometry.vertices[i].y, tetrahedronGeometry.vertices[i].z));
+    }
+    tetrahedron.position.set(positionx, positiony, positionz);
+    tetrahedron.rotation.set(rotationx, rotationy, rotationz);
+    tetrahedronShape.setMargin(margin);
+    id++;
+    createRigidBody(tetrahedron, tetrahedronShape, 10, id);
+    idToObject[id] = tetrahedron;
+    return id;
+  }
+
+  removeObject = function removeObject(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      rigidBodies.splice(rigidBodies.indexOf(idToObject[id]), 1);
+      scene.remove(idToObject[id]);
+      physicsWorld.removeRigidBody(idToPhysicsBody[id]);
+      delete idToObject[id];
+      delete idToPhysicsBody[id];
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectCount = function getObjectCount() {
+    return rigidBodies.length;
+  }
+
+  getObjectPositionX = function getObjectPositionX(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].position.x;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectPositionY = function getObjectPositionY(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].position.y;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectPositionZ = function getObjectPositionZ(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].position.z;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectRotationX = function getObjectRotationX(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].rotation.x;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectRotationY = function getObjectRotationY(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].rotation.y;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectRotationZ = function getObjectRotationZ(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].rotation.z;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectScaleX = function getObjectScaleX(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].scale.x;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectScaleY = function getObjectScaleY(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].scale.y;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectScaleZ = function getObjectScaleZ(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].scale.z;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectColor = function getObjectColor(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].material.color.getHex();
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectLinearVelocityX = function getObjectLinearVelocityX(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToPhysicsBody[id].getLinearVelocity().x();
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectLinearVelocityY = function getObjectLinearVelocityY(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToPhysicsBody[id].getLinearVelocity().y();
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectLinearVelocityZ = function getObjectLinearVelocityZ(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToPhysicsBody[id].getLinearVelocity().z();
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectAngularVelocityX = function getObjectAngularVelocityX(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToPhysicsBody[id].getAngularVelocity().x();
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectAngularVelocityY = function getObjectAngularVelocityY(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToPhysicsBody[id].getAngularVelocity().y();
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectAngularVelocityZ = function getObjectAngularVelocityZ(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToPhysicsBody[id].getAngularVelocity().z();
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getCameraX = function getCameraX() {
+    return dummy.position.x;
+  }
+
+  getCameraY = function getCameraY() {
+    return dummy.position.y;
+  }
+
+  getCameraZ = function getCameraZ() {
+    return dummy.position.z;
+  }
+
+/*
+  getObjectColorR = function getObjectColorR(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].material.color.r;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectColorG = function getObjectColorG(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].material.color.g;
+    } else {
+      return "invalid id";
+    }
+  }
+
+  getObjectColorB = function getObjectColorB(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      return idToObject[id].material.color.b;
+    } else {
+      return "invalid id";
+    }
+  }
+*/
+
+  setObjectColor = function setObjectColor(id, hex) {
+    if (idToObject.hasOwnProperty(id)) {
+      idToObject[id].material.color = new THREE.Color(hex);
+    } else {
+      return "invalid id";
+    }
+  }
+
+  setObjectLinearVelocity = function setObjectLinearVelocity(id, x, y, z) {
+    if (idToObject.hasOwnProperty(id)) {
+      idToPhysicsBody[id].setLinearVelocity(new Ammo.btVector3(x, y, z));
+    } else {
+      return "invalid id";
+    }
+  }
+
+  setObjectAngularVelocity = function setObjectAngularVelocity(id, x, y, z) {
+    if (idToObject.hasOwnProperty(id)) {
+      idToPhysicsBody[id].setAngularVelocity(new Ammo.btVector3(x, y, z));
+    } else {
+      return "invalid id";
+    }
+  }
+
+  setCamera = function setCamera(x, y, z) {
+    dummy.position.set(x, y, z);
+  }
 }
+
+var addBox;
+var addCone;
+var addCylinder;
+var addDodecahedron;
+var addIcosahedron;
+var addOctahedron;
+var addSphere;
+var addTetrahedron;
+var removeObject;
+
+var getObjectCount;
+
+var getObjectPositionX;
+var getObjectPositionY;
+var getObjectPositionZ;
+var getObjectRotationX;
+var getObjectRotationY;
+var getObjectRotationZ;
+var getObjectScaleX;
+var getObjectScaleY;
+var getObjectScaleZ;
+var getObjectColor;
+
+var getObjectLinearVelocityX;
+var getObjectLinearVelocityY;
+var getObjectLinearVelocityZ;
+var getObjectAngularVelocityX;
+var getObjectAngularVelocityY;
+var getObjectAngularVelocityZ;
+
+var getCameraX;
+var getCameraY;
+var getCameraZ;
+
+var setObjectColor;
+
+var setObjectLinearVelocity;
+var setObjectAngularVelocity;
+
+var setCamera;
 
 initEditor(true);
