@@ -1688,6 +1688,10 @@ function initVR() {
   setCamera = function setCamera(x, y, z) {
     dummy.position.set(x, y, z);
   }
+
+  setGravity = function setGravity(x, y, z) {
+    physicsWorld.setGravity(new Ammo.btVector3(x, y, z));
+  }
 }
 
 var addBox;
@@ -1730,5 +1734,7 @@ var setObjectLinearVelocity;
 var setObjectAngularVelocity;
 
 var setCamera;
+
+var setGravity;
 
 initEditor(true);
