@@ -3,11 +3,50 @@ html {
 }
 
 body {
+  background-color: #32383f;
   height: 100%;
-  margin: 0;
 }
 
-canvas {
+body > canvas {
   position: absolute;
   top: 0;
+}
+
+.webvr-polyfill-fullscreen-wrapper > canvas {
+  padding: 0 !important;
+}
+
+.control-button {
+  background-color: #32383f;
+  font-size: 0.75rem;
+  display: inline-block;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid #fff;
+  transition: 0.2s;
+}
+
+.control-button-left {
+  margin-right: 1rem;
+}
+
+.control-button-left:last-child {
+  margin-right: 0;
+}
+
+.control-inactive:hover {
+  background-color: #464c52;
+}
+
+#controls-vr {
+  font-size: 0;
+  padding: 1rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
 }

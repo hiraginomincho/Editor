@@ -3,38 +3,46 @@ html {
 }
 
 body {
+  background-color: #32383f;
   height: 100%;
 }
 
 #container {
+  background-color: #32383f;
   height: 100%;
 }
 
 #container-row {
-  background-color: #eeeeee;
+  background-color: #32383f;
   height: 100%;
 }
 
 #left-panel {
-  background-color: #eeeeee;
+  background-color: #32383f;
   padding: 1rem;
   font-size: 0;
   overflow: auto;
 }
 
 .object-button {
-  font-size: 1.5rem;
+  font-size: 0.75rem;
   padding: 0.5rem;
   cursor: pointer;
   margin-bottom: 1rem;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid #fff;
+  transition: 0.2s;
 }
 
 .object-button:hover {
-  background-color: #dddddd;
+  background-color: #464c52;
 }
 
 #editor-panel {
-  background-color: #eeeeee;
+  background-color: #32383f;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -51,34 +59,34 @@ div > canvas {
   height: 100%;
 }
 
-body > canvas {
-  position: absolute;
-  top: 0;
-}
-
 #controls-left {
-  background-color: #eeeeee;
   font-size: 0;
-  padding: 0.75rem;
+  padding: 1rem;
   position: absolute;
   bottom: 0;
   left: 0;
 }
 
 #controls-right {
-  background-color: #eeeeee;
   font-size: 0;
-  padding: 0.75rem;
+  padding: 1rem;
   position: absolute;
   bottom: 0;
   right: 0;
 }
 
 .control-button {
-  font-size: 1rem;
+  background-color: #32383f;
+  font-size: 0.75rem;
   display: inline-block;
   padding: 0.5rem;
   cursor: pointer;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid #fff;
+  transition: 0.2s;
 }
 
 .control-button-left {
@@ -102,19 +110,16 @@ body > canvas {
 }
 
 .control-inactive:hover {
-  background-color: #dddddd;
+  background-color: #464c52;
 }
 
 .control-active {
-  background-color: #cccccc;
-}
-
-#delete {
-  flex: none;
+  background-color: #fff;
+  color: #32383f;
 }
 
 #right-panel {
-  background-color: #eeeeee;
+  background-color: #32383f;
   padding: 1rem;
   font-size: 0;
   overflow: auto;
@@ -127,24 +132,29 @@ body > canvas {
 }
 
 .object-item {
-  font-size: 1rem;
+  font-size: 0.75rem;
+  color: #fff;
   cursor: pointer;
   overflow: hidden;
   outline: none;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid #32383f;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: 0.2s;
 }
 
 .object-item[contenteditable="true"] {
   background-color: #ffffff !important;
+  color: #32383f;
 }
 
 .object-inactive:hover {
-  background-color: #dddddd;
+  background-color: #464c52;
 }
 
 .object-active {
-  background-color: #cccccc;
+  border: 1px solid #fff;
 }
 
 #parameter-wrapper-1 {
@@ -152,9 +162,20 @@ body > canvas {
   visibility: hidden;
 }
 
-.parameter-label {
-  font-size: 1.5rem;
+.parameter-label-large {
+  font-size: 1.25rem;
   padding: 0.5rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.parameter-label {
+  font-size: 1rem;
+  padding: 0.5rem 0.5rem 0 0.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
 }
 
 .parameter-row {
@@ -171,43 +192,48 @@ body > canvas {
 .parameter-box {
   font-size: 1rem;
   overflow: hidden;
-  height: 1.25rem;
+  height: 1.5rem;
 }
 
 .input-text {
   width: 100%;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
   border: 0;
-  background-color: #eeeeee;
+  background-color: #32383f;
+  color: #fff;
   font-family: inherit;
   outline: none;
-  color: inherit;
+}
+
+.input-text:hover {
+  background-color: #464c52;
 }
 
 .input-text:focus {
   background-color: #ffffff;
+  color: #32383f;
 }
 
-#color-input {
+hr {
+  height: 1px;
+  border: 0;
+  background: #434b55;
+}
+
+#color {
   font-family: inherit;
   font-size: 1rem;
-  background-color: #eeeeee;
-  color: inherit;
+  background-color: #32383f;
+  color: #fff;
   outline: none;
   max-width: 100%;
 }
 
 #parameter-wrapper-2 {
   width: 100%;
+  visibility: hidden;
 }
 
-#controls-single {
-  background-color: #eeeeee;
-  font-size: 0;
-  padding: 0.75rem;
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
+#parameter-wrapper-3 {
+  width: 100%;
+  visibility: hidden;
 }
