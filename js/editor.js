@@ -800,10 +800,10 @@ function initEditor() {
         CLICKED.textureURL = input.value;
         CLICKED.material.dispose();
         if (input.value === "") {
-          CLICKED.material = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+          CLICKED.material = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
         } else {
           var texture = new THREE.TextureLoader().load(input.value);
-          CLICKED.material = new THREE.MeshPhongMaterial({color: color, map: texture, shading: THREE.FlatShading});
+          CLICKED.material = new THREE.MeshPhongMaterial({color: color, map: texture, shading: THREE.FlatShading, side: THREE.DoubleSide});
         }
         break;
       case "mass":
