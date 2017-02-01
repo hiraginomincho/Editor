@@ -2,10 +2,12 @@
 
 var sceneJSONString;
 
+var objects = [];
+
 function initEditor() {
   var renderer = new THREE.WebGLRenderer();
 
-  var objects = [];
+  //var objects = [];
 
   var scene, transformControls;
   var camera, orbitControls;
@@ -282,14 +284,14 @@ function initEditor() {
     if (intersects.length > 0) {
       if (INTERSECTED != intersects[0].object) {
         if (INTERSECTED) {
-          INTERSECTED.material.emissive.setHex(INTERSECTED.baseHex);
+          INTERSECTED.material.emissive.setHex(0);
         }
         INTERSECTED = intersects[0].object;
         INTERSECTED.material.emissive.setHex(0x222222);
       }
     } else {
       if (INTERSECTED) {
-        INTERSECTED.material.emissive.setHex(INTERSECTED.baseHex);
+        INTERSECTED.material.emissive.setHex(0);
       }
       INTERSECTED = null;
     }
@@ -348,7 +350,6 @@ function initEditor() {
         clone.angularVelocityX = CLICKED.angularVelocityX;
         clone.angularVelocityY = CLICKED.angularVelocityY;
         clone.angularVelocityZ = CLICKED.angularVelocityZ;
-        clone.baseHex = clone.material.emissive.getHex();
         addToScene(clone, true);
       }
     });
@@ -465,7 +466,6 @@ function initEditor() {
       object.angularVelocityY = objectJSON.angularvelocityy;
       object.angularVelocityZ = objectJSON.angularvelocityz;
       object.name = objectJSON.name;
-      object.baseHex = object.material.emissive.getHex();
       addToScene(object, false);
     }
   }
@@ -649,7 +649,6 @@ function initEditor() {
     object.angularVelocityX = 0;
     object.angularVelocityY = 0;
     object.angularVelocityZ = 0;
-    object.baseHex = object.material.emissive.getHex();
   }
 
   function addToObjectList(object) {
