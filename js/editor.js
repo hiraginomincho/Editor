@@ -2,12 +2,10 @@
 
 var sceneJSONString;
 
-var objects = [];
-
 function initEditor() {
   var renderer = new THREE.WebGLRenderer();
 
-  //var objects = [];
+  var objects = [];
 
   var scene, transformControls;
   var camera, orbitControls;
