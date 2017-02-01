@@ -93,7 +93,7 @@ function initEditor() {
     scene.add(gridHelper);
 
     var boxGeometry = new THREE.BoxBufferGeometry(4, 4, 4);
-    var boxMaterial = new THREE.MeshPhongMaterial({color: 0x7f0000, shading: THREE.FlatShading});
+    var boxMaterial = new THREE.MeshPhongMaterial({color: 0x7f0000, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var box = new THREE.Mesh(boxGeometry, boxMaterial);
     box.name = "Box";
     setOtherParameters(box);
@@ -102,7 +102,7 @@ function initEditor() {
     box.position.y += 2;
 
     var sphereGeometry = new THREE.SphereBufferGeometry(2, 16, 16);
-    var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x007f00, shading: THREE.FlatShading});
+    var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x007f00, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.name = "Sphere";
     setOtherParameters(sphere);
@@ -111,7 +111,7 @@ function initEditor() {
     sphere.position.y += 12;
 
     var groundGeometry = new THREE.BoxBufferGeometry(24, 0.2, 24);
-    var groundMaterial = new THREE.MeshPhongMaterial({color: 0x304962, shading: THREE.FlatShading});
+    var groundMaterial = new THREE.MeshPhongMaterial({color: 0x304962, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.name = "Ground";
     setOtherParameters(ground);
@@ -340,6 +340,15 @@ function initEditor() {
         clone.geometry = cloneGeometry;
         clone.material = cloneMaterial;
         clone.position.addScalar(2);
+        clone.textureURL = CLICKED.textureURL;
+        clone.mass = CLICKED.mass;
+        clone.linearVelocityX = CLICKED.linearVelocityX;
+        clone.linearVelocityY = CLICKED.linearVelocityY;
+        clone.linearVelocityZ = CLICKED.linearVelocityZ;
+        clone.angularVelocityX = CLICKED.angularVelocityX;
+        clone.angularVelocityY = CLICKED.angularVelocityY;
+        clone.angularVelocityZ = CLICKED.angularVelocityZ;
+        clone.baseHex = clone.material.emissive.getHex();
         addToScene(clone, true);
       }
     });
@@ -437,19 +446,10 @@ function initEditor() {
       }
       var objectMaterial;
       if (objectJSON.textureURL === "") {
-        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading});
+        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading, side: THREE.DoubleSide});
       } else {
         var texture = new THREE.TextureLoader().load(objectJSON.textureURL);
-        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, map: texture, shading: THREE.FlatShading});
-
-        /*
-        var loader = new THREE.TextureLoader();
-        loader.load(objectJSON.textureURL, function(texture) {
-          objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, map: texture, shading: THREE.FlatShading});
-        }, null, function(xhr) {
-          objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading});
-        });
-        */
+        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, map: texture, shading: THREE.FlatShading, side: THREE.DoubleSide});
       }
       var object = new THREE.Mesh(objectGeometry, objectMaterial);
       object.position.set(objectJSON.positionx, objectJSON.positiony, objectJSON.positionz);
@@ -576,7 +576,7 @@ function initEditor() {
     var tetrahedronButton = document.getElementById("tetrahedron");
     boxButton.addEventListener("click", function() {
       var boxGeometry = new THREE.BoxBufferGeometry(4, 4, 4);
-      var boxMaterial = new THREE.MeshPhongMaterial({color: 0x7f7f00, shading: THREE.FlatShading});
+      var boxMaterial = new THREE.MeshPhongMaterial({color: 0x7f7f00, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var box = new THREE.Mesh(boxGeometry, boxMaterial);
       box.name = "Box";
       setOtherParameters(box);
@@ -584,7 +584,7 @@ function initEditor() {
     });
     coneButton.addEventListener("click", function() {
       var coneGeometry = new THREE.ConeBufferGeometry(2, 4, 16);
-      var coneMaterial = new THREE.MeshPhongMaterial({color: 0x7f007f, shading: THREE.FlatShading});
+      var coneMaterial = new THREE.MeshPhongMaterial({color: 0x7f007f, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var cone = new THREE.Mesh(coneGeometry, coneMaterial);
       cone.name = "Cone";
       setOtherParameters(cone);
@@ -592,7 +592,7 @@ function initEditor() {
     });
     cylinderButton.addEventListener("click", function() {
       var cylinderGeometry = new THREE.CylinderBufferGeometry(2, 2, 4, 16);
-      var cylinderMaterial = new THREE.MeshPhongMaterial({color: 0x007f7f, shading: THREE.FlatShading});
+      var cylinderMaterial = new THREE.MeshPhongMaterial({color: 0x007f7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
       cylinder.name = "Cylinder";
       setOtherParameters(cylinder);
@@ -600,7 +600,7 @@ function initEditor() {
     });
     dodecahedronButton.addEventListener("click", function() {
       var dodecahedronGeometry = new THREE.DodecahedronBufferGeometry(2);
-      var dodecahedronMaterial = new THREE.MeshPhongMaterial({color: 0x7f7fff, shading: THREE.FlatShading});
+      var dodecahedronMaterial = new THREE.MeshPhongMaterial({color: 0x7f7fff, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
       dodecahedron.name = "Dodecahedron";
       setOtherParameters(dodecahedron);
@@ -608,7 +608,7 @@ function initEditor() {
     });
     icosahedronButton.addEventListener("click", function() {
       var icosahedronGeometry = new THREE.IcosahedronBufferGeometry(2);
-      var icosahedronMaterial = new THREE.MeshPhongMaterial({color: 0x7fff7f, shading: THREE.FlatShading});
+      var icosahedronMaterial = new THREE.MeshPhongMaterial({color: 0x7fff7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
       icosahedron.name = "Icosahedron";
       setOtherParameters(icosahedron);
@@ -616,7 +616,7 @@ function initEditor() {
     });
     octahedronButton.addEventListener("click", function() {
       var octahedronGeometry = new THREE.OctahedronBufferGeometry(2);
-      var octahedronMaterial = new THREE.MeshPhongMaterial({color: 0xff7f7f, shading: THREE.FlatShading});
+      var octahedronMaterial = new THREE.MeshPhongMaterial({color: 0xff7f7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var octahedron = new THREE.Mesh(octahedronGeometry, octahedronMaterial);
       octahedron.name = "Octahedron";
       setOtherParameters(octahedron);
@@ -624,7 +624,7 @@ function initEditor() {
     });
     sphereButton.addEventListener("click", function() {
       var sphereGeometry = new THREE.SphereBufferGeometry(2, 16, 16);
-      var sphereMaterial = new THREE.MeshPhongMaterial({color: 0xffff7f, shading: THREE.FlatShading});
+      var sphereMaterial = new THREE.MeshPhongMaterial({color: 0xffff7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       sphere.name = "Sphere";
       setOtherParameters(sphere);
@@ -632,7 +632,7 @@ function initEditor() {
     });
     tetrahedronButton.addEventListener("click", function() {
       var tetrahedronGeometry = new THREE.TetrahedronBufferGeometry(2);
-      var tetrahedronMaterial = new THREE.MeshPhongMaterial({color: 0xff7fff, shading: THREE.FlatShading});
+      var tetrahedronMaterial = new THREE.MeshPhongMaterial({color: 0xff7fff, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var tetrahedron = new THREE.Mesh(tetrahedronGeometry, tetrahedronMaterial);
       tetrahedron.name = "Tetrahedron";
       setOtherParameters(tetrahedron);
@@ -804,14 +804,6 @@ function initEditor() {
         } else {
           var texture = new THREE.TextureLoader().load(input.value);
           CLICKED.material = new THREE.MeshPhongMaterial({color: color, map: texture, shading: THREE.FlatShading});
-          /*
-          var loader = new THREE.TextureLoader();
-          loader.load(input.value, function(texture) {
-            CLICKED.material = new THREE.MeshPhongMaterial({color: color, map: texture, shading: THREE.FlatShading});
-          }, null, function(xhr) {
-            CLICKED.material = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
-          });
-          */
         }
         break;
       case "mass":

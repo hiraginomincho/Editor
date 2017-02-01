@@ -46,6 +46,7 @@ function initVR() {
 
     vrEffect = new THREE.VREffect(renderer);
     vrEffect.setSize(window.innerWidth, window.innerHeight);
+    vrEffect.autoSubmitFrame = false;
 
     var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -219,10 +220,10 @@ function initVR() {
       });
       var objectMaterial;
       if (objectJSON.textureURL === "") {
-        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading});
+        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, shading: THREE.FlatShading, side: THREE.DoubleSide});
       } else {
         var texture = new THREE.TextureLoader().load(objectJSON.textureURL);
-        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, map: texture, shading: THREE.FlatShading});
+        objectMaterial = new THREE.MeshPhongMaterial({color: objectJSON.color, map: texture, shading: THREE.FlatShading, side: THREE.DoubleSide});
       }
       var object = new THREE.Mesh(objectGeometry, objectMaterial);
       var objectShape = new Ammo.btConvexHullShape();
@@ -256,9 +257,10 @@ function initVR() {
     Reticulum.update();
     renderer.clear();
     cameraCube.rotation.copy(camera.rotation);
-    renderer.render(sceneCube, cameraCube);
+    vrEffect.render(sceneCube, cameraCube);
     renderer.clearDepth();
     vrEffect.render(scene, camera);
+    vrEffect.submitFrame();
   }
 
   function updatePhysics(deltaTime) {
@@ -282,7 +284,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var boxMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var boxMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var box = new THREE.Mesh(boxGeometry, boxMaterial);
     var boxShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < boxGeometry.vertices.length; i++) {
@@ -304,7 +306,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var coneMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var coneMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var cone = new THREE.Mesh(coneGeometry, coneMaterial);
     var coneShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < coneGeometry.vertices.length; i++) {
@@ -326,7 +328,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var cylinderMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var cylinderMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
     var cylinderShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < cylinderGeometry.vertices.length; i++) {
@@ -348,7 +350,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var dodecahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var dodecahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
     var dodecahedronShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < dodecahedronGeometry.vertices.length; i++) {
@@ -370,7 +372,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var icosahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var icosahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
     var icosahedronShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < icosahedronGeometry.vertices.length; i++) {
@@ -392,7 +394,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var octahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var octahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var octahedron = new THREE.Mesh(octahedronGeometry, octahedronMaterial);
     var octahedronShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < octahedronGeometry.vertices.length; i++) {
@@ -414,7 +416,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var sphereMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var sphereMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     var sphereShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < sphereGeometry.vertices.length; i++) {
@@ -436,7 +438,7 @@ function initVR() {
       v.y = v.y * scaley;
       v.z = v.z * scalez;
     });
-    var tetrahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading});
+    var tetrahedronMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var tetrahedron = new THREE.Mesh(tetrahedronGeometry, tetrahedronMaterial);
     var tetrahedronShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < tetrahedronGeometry.vertices.length; i++) {
