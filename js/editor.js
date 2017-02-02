@@ -403,6 +403,7 @@ function initEditor() {
     cameraXInput.value = worldJSON.camerax.toFixed(3);
     cameraYInput.value = worldJSON.cameray.toFixed(3);
     cameraZInput.value = worldJSON.cameraz.toFixed(3);
+    backgroundInput.value = worldJSON.background;
     if (worldJSON.background !== "") {
       var equirectTexture = new THREE.TextureLoader().load(worldJSON.background);
       equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
