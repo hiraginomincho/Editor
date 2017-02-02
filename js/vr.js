@@ -1,6 +1,11 @@
 "use strict";
 
-var sceneJSONString = window.opener.sceneJSONString;
+if (window.opener) {
+  var sceneJSONString = window.opener.sceneJSONString;
+  initVR();
+} else {
+  window.alert("This page should only be accessed through the VR Editor.");
+}
 
 function initVR() {
   var vrButton = document.getElementById("vr-switch");
@@ -710,5 +715,3 @@ var setObjectAngularVelocity;
 var setCamera;
 
 var setGravity;
-
-initVR();

@@ -2,6 +2,8 @@
 
 var sceneJSONString;
 
+initEditor();
+
 function initEditor() {
   var renderer = new THREE.WebGLRenderer();
 
@@ -980,5 +982,3 @@ function initEditor() {
     parameterWrapper2.style.visibility = "visible";
   }
 }
-
-initEditor(true);
