@@ -13,6 +13,7 @@ function initEditor() {
   var camera, orbitControls;
   var raycaster;
   var mouse = new THREE.Vector2();
+  var mouseInitialization = false;
   var onDownPosition = new THREE.Vector2();
   var onUpPosition = new THREE.Vector2();
   var INTERSECTED, CLICKED;
@@ -62,6 +63,12 @@ function initEditor() {
   var parameterWrapper1 = document.getElementById("parameter-wrapper-1");
   var parameterWrapper2 = document.getElementById("parameter-wrapper-2");
   var parameterWrapper3 = document.getElementById("parameter-wrapper-3");
+
+  var labelsBackground = document.getElementById("labels-background");
+  var labelsModal = document.getElementById("labels-modal");
+  var labelsContainer = document.getElementById("labels-container");
+  var labelBoxes = [];
+  var labelBoxCoordinates = [];
 
   init();
   render();
@@ -189,6 +196,7 @@ function initEditor() {
   function onEditorMouseMove(event) {
     event.preventDefault();
     mouse.fromArray(getMousePosition(event));
+    mouseInitialization = true;
   }
 
   function onEditorMouseDown(event) {
@@ -281,7 +289,7 @@ function initEditor() {
     transformControls.update();
     raycaster.setFromCamera(mouse, camera);
     var intersects = raycaster.intersectObjects(objects);
-    if (intersects.length > 0) {
+    if (intersects.length > 0 && mouseInitialization) {
       if (INTERSECTED != intersects[0].object) {
         if (INTERSECTED) {
           INTERSECTED.material.emissive.setHex(0);
@@ -575,6 +583,9 @@ function initEditor() {
     var octahedronButton = document.getElementById("octahedron");
     var sphereButton = document.getElementById("sphere");
     var tetrahedronButton = document.getElementById("tetrahedron");
+    var labelsButton = document.getElementById("labels");
+    var addLabelButton = document.getElementById("add-label");
+    var deleteLabelButton = document.getElementById("delete-label");
     boxButton.addEventListener("click", function() {
       var boxGeometry = new THREE.BoxBufferGeometry(4, 4, 4);
       var boxMaterial = new THREE.MeshPhongMaterial({color: 0x7f7f00, shading: THREE.FlatShading, side: THREE.DoubleSide});
@@ -639,6 +650,55 @@ function initEditor() {
       setOtherParameters(tetrahedron);
       addToScene(tetrahedron, true);
     });
+    labelsButton.addEventListener("click", function() {
+      labelsBackground.style.display = "block";
+      labelsModal.style.display = "flex";
+      labelsBackground.offsetHeight;
+      labelsBackground.style.opacity = 1;
+      labelsModal.offsetHeight;
+      labelsModal.style.opacity = 1;
+    });
+    addLabelButton.addEventListener("click", function() {
+      var labelBox = document.createElement("div");
+      var labelBoxX;
+      var labelBoxY;
+      labelBox.classList.add("label-box");
+      labelBoxes.push(labelBox);
+      labelBoxCoordinates.push([0, 0]);
+      labelBox.innerHTML ="Label " + labelBoxes.length;
+      labelsContainer.appendChild(labelBox);
+      labelBox.addEventListener("mousedown", function(event) {
+        labelBoxX = event.clientX - labelBox.offsetLeft;
+        labelBoxY = event.clientY - labelBox.offsetTop;
+        labelBoxCoordinates[labelBoxes.indexOf(labelBox)] = [labelBoxX, labelBoxY];
+        window.addEventListener("mousemove", labelMove);
+        window.addEventListener("mouseup", function() {
+          window.removeEventListener("mousemove", labelMove);
+        });
+      });
+      function labelMove(event) {
+        labelBox.style.left = Math.max(Math.min(event.clientX - labelBoxX, labelsContainer.offsetWidth - labelBox.offsetWidth), 0) + "px";
+        labelBox.style.top = Math.max(Math.min(event.clientY - labelBoxY, labelsContainer.offsetHeight - labelBox.offsetHeight), 0) + "px";
+      }
+    });
+    deleteLabelButton.addEventListener("click", function() {
+      if (labelBoxes.length > 0) {
+        labelsContainer.removeChild(labelsContainer.children[labelBoxes.length - 1]);
+        labelBoxes.pop();
+        labelBoxCoordinates.pop();
+      }
+    });
+    labelsBackground.addEventListener("click", function() {
+      labelsBackground.style.opacity = 0;
+      labelsModal.style.opacity = 0;
+      labelsBackground.addEventListener("transitionend", hideLabels);
+    });
+  }
+
+  function hideLabels() {
+    labelsBackground.style.display = "none";
+    labelsModal.style.display = "none";
+    this.removeEventListener("transitionend", hideLabels);
   }
 
   function setOtherParameters(object) {

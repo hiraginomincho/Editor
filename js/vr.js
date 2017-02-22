@@ -1,5 +1,7 @@
 "use strict";
 
+var vrEffect, vrDisplay;
+
 if (window.opener) {
   var sceneJSONString = window.opener.sceneJSONString;
   initVR();
@@ -10,15 +12,28 @@ if (window.opener) {
 function initVR() {
   var vrButton = document.getElementById("vr-switch");
   vrButton.addEventListener("click", function() {
+    console.log("requesting present");
+    console.log("before");
+    console.log(window.innerWidth);
+    console.log(window.innerHeight);
+    hud.scale.set(4, 2, 1);
+    hud.position.set(3, 4, 1);
     vrDisplay.requestPresent([{source: renderer.domElement}]);
+    console.log("after");
+    console.log(window.innerWidth);
+    console.log(window.innerHeight);
   });
 
   var renderer = new THREE.WebGLRenderer();
 
-  var scene, vrControls, vrEffect, vrDisplay;
+  var hasBackground;
+
+  var scene, vrControls;
   var dummy, camera;
 
   var cameraCube, sceneCube, equirectMaterial;
+
+  var cameraOrtho, sceneOrtho, hud;
 
   var physicsWorld;
 
@@ -39,15 +54,24 @@ function initVR() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setClearColor(0x32383f);
+    renderer.autoClear = false;
     //renderer.shadowMap.enabled = true;
     //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    cameraCube = new THREE.PerspectiveCamera(70, renderer.domElement.clientWidth / renderer.domElement.clientHeight, 0.01, 10000);
+    var rendererWidth = renderer.domElement.clientWidth;
+    var rendererHeight = renderer.domElement.clientHeight;
+
+    cameraCube = new THREE.PerspectiveCamera(70, rendererWidth / rendererHeight, 0.01, 10000);
+
+    cameraOrtho = new THREE.OrthographicCamera(-rendererWidth / 2, rendererWidth / 2, rendererHeight / 2, -rendererHeight / 2, 1, 10);
+    cameraOrtho.position.z = 10;
 
     scene = new THREE.Scene();
 
     sceneCube = new THREE.Scene();
+
+    sceneOrtho = new THREE.Scene();
 
     vrEffect = new THREE.VREffect(renderer);
     vrEffect.setSize(window.innerWidth, window.innerHeight);
@@ -87,6 +111,22 @@ function initVR() {
 
     var backgroundMesh = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 100), equirectMaterial);
     sceneCube.add(backgroundMesh);
+
+    var hudTexture = new THREE.Texture(getHUD());//, createHUD);
+    hudTexture.needsUpdate = true;
+
+    createHUD(hudTexture);
+
+    function createHUD(texture) {
+      var hudMaterial = new THREE.SpriteMaterial({map: hudTexture});
+      hud = new THREE.Sprite(hudMaterial);
+      var hudWidth = hudMaterial.map.image.width;
+      var hudHeight = hudMaterial.map.image.height;
+      hud.scale.set(rendererWidth / 10, rendererHeight / 10, 1);
+      //hud.position.set((rendererWidth - hudWidth / 2) / 2 - 400, (rendererHeight - hudHeight / 2) / 2 - 200, 1);
+      hud.position.set(0, 0, 1);
+      sceneOrtho.add(hud);
+    }
 
     importScene(JSON.parse(sceneJSONString));
 
@@ -129,6 +169,44 @@ function initVR() {
 
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("vrdisplaypresentchange", onWindowResize);
+  }
+
+  function getHUD() {
+    var canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 150;
+    var ctx = canvas.getContext("2d");
+    ctx.font = "32pt BlinkMacSystemFont";
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineWidth = 4;
+    ctx.lineTo(0, canvas.height);
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.lineTo(canvas.width, 0);
+    ctx.lineTo(0, 0);
+    ctx.strokeStyle="white";
+    ctx.stroke();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(2, 2, canvas.width - 4, canvas.height - 4);
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("HUD DISPLAY", canvas.width / 2, canvas.height / 2);
+    return canvas;
+    /*
+    canvas.style.width = "400px";
+    canvas.style.height = "400px";
+    canvas.width = 800;
+    canvas.height = 800;
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.font = "24px sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Hello World", canvas.width / 2, canvas.height / 2);
+    //ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.scale(2, 2);
+    return canvas;
+    */
   }
 
   function getFrag() {
@@ -183,9 +261,9 @@ function initVR() {
       var equirectTexture = new THREE.TextureLoader().load(worldJSON.background);
       equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
       equirectMaterial.uniforms["tEquirect"].value = equirectTexture;
-      renderer.autoClear = false;
+      hasBackground = false;
     } else {
-      renderer.autoClear = true;
+      hasBackground = true;
     }
     for (var i = 1; i < sceneJSON.length; i++) {
       var objectJSON = sceneJSON[i];
@@ -223,11 +301,21 @@ function initVR() {
   }
 
   function onWindowResize() {
+    console.log("resizing");
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
-    cameraCube.aspect = editorDiv.clientWidth / editorDiv.clientHeight;
+    cameraCube.aspect = window.innerWidth / window.innerHeight;
     cameraCube.updateProjectionMatrix();
+
+    cameraOrtho.left = -window.innerWidth / 2;
+    cameraOrtho.right = window.innerWidth / 2;
+    cameraOrtho.top = window.innerHeight / 2;
+    cameraOrtho.bottom = -window.innerHeight / 2;
+    cameraOrtho.updateProjectionMatrix();
+
+    //hud.scale.set(window.innerWidth / 10, window.innerHeight / 10, 1);
+    //hud.position.set((window.innerWidth - hud.material.map.image.width / 2) / 2, (window.innerHeight - hud.material.map.image.height / 2) / 2, 1);
 
     vrEffect.setSize(window.innerWidth, window.innerHeight);
   }
@@ -241,8 +329,11 @@ function initVR() {
     renderer.clear();
     cameraCube.rotation.copy(camera.rotation);
     vrEffect.render(sceneCube, cameraCube);
-    renderer.clearDepth();
+    if (hasBackground) {
+      renderer.clear();
+    }
     vrEffect.render(scene, camera);
+    vrEffect.render(sceneOrtho, cameraOrtho);
     vrEffect.submitFrame();
   }
 

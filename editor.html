@@ -9,40 +9,40 @@
   </head>
   <body>
     <div class="container-fluid" id="container">
-     <div class="row" id="container-row">
-       <div class="col-2" id="left-panel">
-         <div class="object-button" id="box">
+      <div class="row" id="container-row">
+        <div class="col-2" id="left-panel">
+          <div class="object-button" id="box">
            Box
-         </div>
-         <div class="object-button" id="cone">
+          </div>
+          <div class="object-button" id="cone">
            Cone
-         </div>
-         <div class="object-button" id="cylinder">
+          </div>
+          <div class="object-button" id="cylinder">
            Cylinder
-         </div>
-         <div class="object-button" id="dodecahedron">
+          </div>
+          <div class="object-button" id="dodecahedron">
            Dodecahedron
-         </div>
-         <div class="object-button" id="icosahedron">
+          </div>
+          <div class="object-button" id="icosahedron">
            Icosahedron
-         </div>
-         <div class="object-button" id="octahedron">
+          </div>
+          <div class="object-button" id="octahedron">
            Octahedron
-         </div>
-         <div class="object-button" id="sphere">
+          </div>
+          <div class="object-button" id="sphere">
            Sphere
-         </div>
-         <div class="object-button" id="tetrahedron">
+          </div>
+          <div class="object-button" id="tetrahedron">
            Tetrahedron
-         </div>
-         <hr>
-         <div class="parameter-label-large">
+          </div>
+          <hr>
+          <div class="parameter-label-large">
            World
-         </div>
-         <div class="parameter-label">
+          </div>
+          <div class="parameter-label">
            Gravity
-         </div>
-         <div class="row parameter-row">
+          </div>
+          <div class="row parameter-row">
            <div class="col-4 parameter-item">
              <input class="input-text parameter-box" id="gravity-x" type="number" value="0.000">
            </div>
@@ -52,11 +52,11 @@
            <div class="col-4 parameter-item">
              <input class="input-text parameter-box" id="gravity-z" type="number" value="0.000">
            </div>
-         </div>
-         <div class="parameter-label">
+          </div>
+          <div class="parameter-label">
            Camera
-         </div>
-         <div class="row parameter-row">
+          </div>
+          <div class="row parameter-row">
            <div class="col-4 parameter-item">
              <input class="input-text parameter-box" id="camera-x" type="number" value="20.000">
            </div>
@@ -66,18 +66,21 @@
            <div class="col-4 parameter-item">
              <input class="input-text parameter-box" id="camera-z" type="number" value="10.000">
            </div>
-         </div>
-         <div class="parameter-label">
+          </div>
+          <div class="parameter-label">
            Background
-         </div>
-         <div class="parameter-row">
+          </div>
+          <div class="parameter-row">
            <input class="input-text parameter-box" id="background" type="text">
-         </div>
-       </div>
-       <div class="col-8" id="editor-panel">
-         <div id="editor">
-         </div>
-         <div id="controls-left">
+          </div>
+          <div class="object-button" id="labels">
+           Labels
+          </div>
+        </div>
+        <div class="col-8" id="editor-panel">
+          <div id="editor">
+          </div>
+          <div id="controls-left">
            <div class="control-button control-button-left control-inactive" id="vr">
              VR
            </div>
@@ -100,124 +103,137 @@
            <div class="control-button control-button-left control-inactive" id="export">
              Export
            </div>
-         </div>
-         <div id="controls-right">
+          </div>
+          <div id="controls-right">
            <div class="control-button control-button-right control-inactive" id="delete">
              Delete
            </div>
            <div class="control-button control-button-right control-inactive" id="clear">
              Clear
            </div>
-         </div>
-       </div>
-       <div class="col-2" id="right-panel">
-         <div class="parameter-label-large">
-           Objects
-         </div>
-         <div id="object-list">
-         </div>
-         <div id="parameter-wrapper-1">
-           <hr>
-           <div class="parameter-label">
-             Position
-           </div>
-           <div class="row parameter-row">
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="position-x" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="position-y" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="position-z" type="number">
-             </div>
-           </div>
-           <div class="parameter-label">
-             Rotation
-           </div>
-           <div class="row parameter-row">
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="rotation-x" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="rotation-y" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="rotation-z" type="number">
-             </div>
-           </div>
-           <div class="parameter-label">
-             Scale
-           </div>
-           <div class="row parameter-row">
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="scale-x" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="scale-y" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="scale-z" type="number">
-             </div>
-           </div>
-           <div class="parameter-label">
-             Color
-           </div>
-           <div class="parameter-row">
-             <input id="color" type="color">
-           </div>
-           <div class="parameter-label">
-             Texture
-           </div>
-           <div class="parameter-row">
-             <input class="input-text parameter-box" id="texture" type="text">
-           </div>
-           <div class="parameter-label">
-             Mass
-           </div>
-           <div class="row parameter-row">
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="mass" type="number">
-             </div>
-           </div>
-           "<hr>
-         </div>
-         <div id="parameter-wrapper-2">
-         </div>
-         <div id="parameter-wrapper-3">
-           <hr>
-           <div class="parameter-label">
-             Linear Velocity
-           </div>
-           <div class="row parameter-row">
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="linear-velocity-x" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="linear-velocity-y" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="linear-velocity-z" type="number">
-             </div>
-           </div>
-           <div class="parameter-label">
-             Angular Velocity
-           </div>
-           <div class="row parameter-row">
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="angular-velocity-x" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="angular-velocity-y" type="number">
-             </div>
-             <div class="col-4 parameter-item">
-               <input class="input-text parameter-box" id="angular-velocity-z" type="number">
-             </div>
-           </div>
-         </div>
-       </div>
-     </div>
-   </div>
+          </div>
+        </div>
+        <div class="col-2" id="right-panel">
+          <div class="parameter-label-large">
+            Objects
+          </div>
+          <div id="object-list">
+          </div>
+          <div id="parameter-wrapper-1">
+            <hr>
+            <div class="parameter-label">
+              Position
+            </div>
+            <div class="row parameter-row">
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="position-x" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="position-y" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="position-z" type="number">
+              </div>
+            </div>
+            <div class="parameter-label">
+              Rotation
+            </div>
+            <div class="row parameter-row">
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="rotation-x" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="rotation-y" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="rotation-z" type="number">
+              </div>
+            </div>
+            <div class="parameter-label">
+              Scale
+            </div>
+            <div class="row parameter-row">
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="scale-x" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="scale-y" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="scale-z" type="number">
+              </div>
+            </div>
+            <div class="parameter-label">
+              Color
+            </div>
+            <div class="parameter-row">
+              <input id="color" type="color">
+            </div>
+            <div class="parameter-label">
+              Texture
+            </div>
+            <div class="parameter-row">
+              <input class="input-text parameter-box" id="texture" type="text">
+            </div>
+            <div class="parameter-label">
+              Mass
+            </div>
+            <div class="row parameter-row">
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="mass" type="number">
+              </div>
+            </div>
+            <hr>
+          </div>
+          <div id="parameter-wrapper-2">
+          </div>
+          <div id="parameter-wrapper-3">
+            <hr>
+            <div class="parameter-label">
+              Linear Velocity
+            </div>
+            <div class="row parameter-row">
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="linear-velocity-x" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="linear-velocity-y" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="linear-velocity-z" type="number">
+              </div>
+            </div>
+            <div class="parameter-label">
+              Angular Velocity
+            </div>
+            <div class="row parameter-row">
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="angular-velocity-x" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="angular-velocity-y" type="number">
+              </div>
+              <div class="col-4 parameter-item">
+                <input class="input-text parameter-box" id="angular-velocity-z" type="number">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="labels-background"></div>
+    <div id="labels-modal">
+      <div id="label-buttons">
+        <div class="control-button control-inactive" id="add-label">
+          Add
+        </div>
+        <div class="control-button control-inactive" id="delete-label">
+          Delete
+        </div>
+      </div>
+      <div id="labels-container">
+      </div>
+    </div>
     <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
