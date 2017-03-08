@@ -1,7 +1,5 @@
 "use strict";
 
-var vrEffect, vrDisplay;
-
 if (window.opener) {
   var sceneJSONString = window.opener.sceneJSONString;
   initVR();
@@ -12,32 +10,30 @@ if (window.opener) {
 function initVR() {
   var vrButton = document.getElementById("vr-switch");
   vrButton.addEventListener("click", function() {
-    console.log("requesting present");
-    console.log("before");
-    console.log(window.innerWidth);
-    console.log(window.innerHeight);
-    hud.scale.set(4, 2, 1);
-    hud.position.set(3, 4, 1);
+    windowHeight = window.innerHeight;
     vrDisplay.requestPresent([{source: renderer.domElement}]);
-    console.log("after");
-    console.log(window.innerWidth);
-    console.log(window.innerHeight);
   });
 
   var renderer = new THREE.WebGLRenderer();
 
+  var windowHeight;
+
   var hasBackground;
 
-  var scene, vrControls;
+  var scene, vrControls, vrEffect, vrDisplay;;
   var dummy, camera;
 
   var cameraCube, sceneCube, equirectMaterial;
 
-  var cameraOrtho, sceneOrtho, hud;
+  var cameraOrtho, sceneOrtho;
 
   var physicsWorld;
 
   var rigidBodies = [];
+
+  var huds = [];
+  var hudTexts = [];
+  var hudPositions = [];
 
   var margin = 0.01;
 
@@ -47,6 +43,8 @@ function initVR() {
   var idToObject = {};
   var idToPhysicsBody = {};
   var id = -1;
+
+  var inVR = false;
 
   init();
 
@@ -59,12 +57,9 @@ function initVR() {
     //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    var rendererWidth = renderer.domElement.clientWidth;
-    var rendererHeight = renderer.domElement.clientHeight;
+    cameraCube = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10000);
 
-    cameraCube = new THREE.PerspectiveCamera(70, rendererWidth / rendererHeight, 0.01, 10000);
-
-    cameraOrtho = new THREE.OrthographicCamera(-rendererWidth / 2, rendererWidth / 2, rendererHeight / 2, -rendererHeight / 2, 1, 10);
+    cameraOrtho = new THREE.OrthographicCamera(-window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, -window.innerHeight / 2, 1, 10);
     cameraOrtho.position.z = 10;
 
     scene = new THREE.Scene();
@@ -112,22 +107,6 @@ function initVR() {
     var backgroundMesh = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 100), equirectMaterial);
     sceneCube.add(backgroundMesh);
 
-    var hudTexture = new THREE.Texture(getHUD());//, createHUD);
-    hudTexture.needsUpdate = true;
-
-    createHUD(hudTexture);
-
-    function createHUD(texture) {
-      var hudMaterial = new THREE.SpriteMaterial({map: hudTexture});
-      hud = new THREE.Sprite(hudMaterial);
-      var hudWidth = hudMaterial.map.image.width;
-      var hudHeight = hudMaterial.map.image.height;
-      hud.scale.set(rendererWidth / 10, rendererHeight / 10, 1);
-      //hud.position.set((rendererWidth - hudWidth / 2) / 2 - 400, (rendererHeight - hudHeight / 2) / 2 - 200, 1);
-      hud.position.set(0, 0, 1);
-      sceneOrtho.add(hud);
-    }
-
     importScene(JSON.parse(sceneJSONString));
 
     Reticulum.init(camera, {
@@ -169,12 +148,28 @@ function initVR() {
 
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("vrdisplaypresentchange", onWindowResize);
+    window.addEventListener("vrdisplaypresentchange", resizeHUDs);
   }
 
-  function getHUD() {
+  function resizeHUDs() {
+    for(var i = 0; i < huds.length; i++) {
+      var hud = huds[i];
+      var scaleFactor = 60 * windowHeight / 800;
+      if (!inVR) {
+        hud.scale.set(hud.scale.x / scaleFactor, hud.scale.y / scaleFactor, 1);
+        hud.position.set(hud.position.x / scaleFactor, hud.position.y / scaleFactor, 1);
+      } else {
+        huds[i].scale.set(hud.scale.x * scaleFactor, hud.scale.y * scaleFactor, 1);
+        hud.position.set(hud.position.x * scaleFactor, hud.position.y * scaleFactor, 1);
+      }
+    }
+    inVR = !inVR;
+  }
+
+  function getHUD(i, text) {
     var canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 150;
+    canvas.width = 512;
+    canvas.height = 256;
     var ctx = canvas.getContext("2d");
     ctx.font = "32pt BlinkMacSystemFont";
     ctx.beginPath();
@@ -191,22 +186,9 @@ function initVR() {
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("HUD DISPLAY", canvas.width / 2, canvas.height / 2);
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    hudTexts[i] = text;
     return canvas;
-    /*
-    canvas.style.width = "400px";
-    canvas.style.height = "400px";
-    canvas.width = 800;
-    canvas.height = 800;
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.font = "24px sans-serif";
-    ctx.textBaseline = "middle";
-    ctx.fillText("Hello World", canvas.width / 2, canvas.height / 2);
-    //ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    ctx.scale(2, 2);
-    return canvas;
-    */
   }
 
   function getFrag() {
@@ -265,8 +247,17 @@ function initVR() {
     } else {
       hasBackground = true;
     }
-    for (var i = 1; i < sceneJSON.length; i++) {
-      var objectJSON = sceneJSON[i];
+    var labelsJSON = sceneJSON[1];
+    for (var i = 0; i < labelsJSON.length; i++) {
+      var labelJSON = labelsJSON[i];
+      var hudTexture = new THREE.Texture(getHUD(i, ""));
+      hudTexture.needsUpdate = true;
+      createHUD(i, hudTexture, 2 * labelJSON.left - 300, 350 - 2 * labelJSON.top);
+      hudPositions.push([labelJSON.left, labelJSON.top]);
+    }
+    var objectsJSON = sceneJSON[2];
+    for (var i = 0; i < objectsJSON.length; i++) {
+      var objectJSON = objectsJSON[i];
       var objectGeometry;
       switch (objectJSON.type) {
         case "BoxBufferGeometry":
@@ -300,8 +291,19 @@ function initVR() {
     }
   }
 
+  function createHUD(i, texture, x, y) {
+    var hudMaterial = new THREE.SpriteMaterial({map: texture});
+    var hud = new THREE.Sprite(hudMaterial);
+    var hudWidth = hudMaterial.map.image.width;
+    var hudHeight = hudMaterial.map.image.height;
+    var scaleFactor = window.innerHeight / 800;
+    hud.scale.set(200 * scaleFactor, 100 * scaleFactor, 1);
+    hud.position.set(x * scaleFactor, y * scaleFactor, 1);
+    huds[i] = hud;
+    sceneOrtho.add(hud);
+  }
+
   function onWindowResize() {
-    console.log("resizing");
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
@@ -313,9 +315,6 @@ function initVR() {
     cameraOrtho.top = window.innerHeight / 2;
     cameraOrtho.bottom = -window.innerHeight / 2;
     cameraOrtho.updateProjectionMatrix();
-
-    //hud.scale.set(window.innerWidth / 10, window.innerHeight / 10, 1);
-    //hud.position.set((window.innerWidth - hud.material.map.image.width / 2) / 2, (window.innerHeight - hud.material.map.image.height / 2) / 2, 1);
 
     vrEffect.setSize(window.innerWidth, window.innerHeight);
   }
@@ -574,31 +573,9 @@ function initVR() {
     return dummy.position.z;
   }
 
-/*
-  getObjectColorR = function getObjectColorR(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].material.color.r;
-    } else {
-      return "invalid id";
-    }
+  getHUDText = function getHUDText(i) {
+    return hudTexts[i];
   }
-
-  getObjectColorG = function getObjectColorG(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].material.color.g;
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectColorB = function getObjectColorB(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].material.color.b;
-    } else {
-      return "invalid id";
-    }
-  }
-*/
 
   setObjectColor = function setObjectColor(id, hex) {
     if (idToObject.hasOwnProperty(id)) {
@@ -642,6 +619,13 @@ function initVR() {
       renderer.autoClear = true;
     }
   }
+
+  setHUDText = function setHUDText(i, text) {
+    sceneOrtho.remove(huds[i]);
+    var hudTexture = new THREE.Texture(getHUD(i, text));
+    hudTexture.needsUpdate = true;
+    createHUD(i, hudTexture, 2 * hudPositions[i][0] - 300, 350 - 2 * hudPositions[i][1]);
+  }
 }
 
 var addBox;
@@ -678,6 +662,8 @@ var getCameraX;
 var getCameraY;
 var getCameraZ;
 
+var getHUDText;
+
 var setObjectColor;
 
 var setObjectLinearVelocity;
@@ -686,3 +672,5 @@ var setObjectAngularVelocity;
 var setGravity;
 var setCamera;
 var setBackground;
+
+var setHUDText;

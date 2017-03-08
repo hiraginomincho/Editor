@@ -55,8 +55,8 @@ body {
 #labels-modal {
   position: absolute;
   margin: auto;
-  width: 40rem;
-  height: 40rem;
+  width: 466px;
+  height: 518px;
   padding: 2rem;
   top: 0;
   bottom: 0;
@@ -68,11 +68,11 @@ body {
   opacity: 0;
   transition: opacity 0.2s;
   display: none;
-  flex-direction: column;
 }
 
 #label-buttons {
   display: flex;
+  width: 400px;
   margin-bottom: 1rem;
 }
 
@@ -88,23 +88,24 @@ body {
 
 #labels-container {
   background-color: #23272c;
-  flex: 1;
+  width: 400px;
+  height: 400px;
   position: relative;
 }
 
 .label-box {
   background-color: #32383f;
   border: 1px solid #fff;
-  width: 150px;
-  height: 100px;
+  width: 100px;
+  height: 50px;
   position: absolute;
   overflow: hidden;
   cursor: move;
   text-align: center;
   vertical-align: middle;
-  line-height: 100px;
+  line-height: 50px;
   user-select: none;
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 #editor-panel {

@@ -1,7 +1,8 @@
 "use strict";
 
 var sceneJSONString;
-
+var labelBoxes = [];
+var labelBoxCoordinates = [];
 initEditor();
 
 function initEditor() {
@@ -67,8 +68,6 @@ function initEditor() {
   var labelsBackground = document.getElementById("labels-background");
   var labelsModal = document.getElementById("labels-modal");
   var labelsContainer = document.getElementById("labels-container");
-  var labelBoxes = [];
-  var labelBoxCoordinates = [];
 
   init();
   render();
@@ -423,8 +422,14 @@ function initEditor() {
       equirectMaterial.uniforms["tEquirect"].value = null;
       renderer.autoClear = true;
     }
-    for (var i = 1; i < sceneJSON.length; i++) {
-      var objectJSON = sceneJSON[i];
+    var labelsJSON = sceneJSON[1];
+    for (var i = 0; i < labelsJSON.length; i++) {
+      var labelJSON = labelsJSON[i];
+      addLabel(labelJSON.left, labelJSON.top);
+    }
+    var objectsJSON = sceneJSON[2];
+    for (var i = 0; i < objectsJSON.length; i++) {
+      var objectJSON = objectsJSON[i];
       var objectGeometry;
       switch (objectJSON.type) {
         case "BoxBufferGeometry":
@@ -504,7 +509,17 @@ function initEditor() {
     worldJSON.cameray = cameraYInput.valueAsNumber;
     worldJSON.cameraz = cameraZInput.valueAsNumber;
     worldJSON.background = backgroundInput.value;
-    sceneJSON[0] = worldJSON;
+    sceneJSON.push(worldJSON);
+    var labelsJSON = [];
+    for (var i = 0; i < labelBoxes.length; i++) {
+      var labelJSON = {};
+      var label = labelBoxes[i];
+      labelJSON.left = labelBoxCoordinates[i][0];
+      labelJSON.top = labelBoxCoordinates[i][1];
+      labelsJSON.push(labelJSON);
+    }
+    sceneJSON.push(labelsJSON);
+    var objectsJSON = [];
     for (var i = 0; i < objects.length; i++) {
       var objectJSON = {};
       var object = objects[i];
@@ -565,8 +580,9 @@ function initEditor() {
       objectJSON.angularvelocityx = object.angularVelocityX;
       objectJSON.angularvelocityy = object.angularVelocityY;
       objectJSON.angularvelocityz = object.angularVelocityZ;
-      sceneJSON[i + 1] = objectJSON;
+      objectsJSON.push(objectJSON);
     }
+    sceneJSON.push(objectsJSON);
     return JSON.stringify(sceneJSON, null, "\t");
   }
 
@@ -652,34 +668,14 @@ function initEditor() {
     });
     labelsButton.addEventListener("click", function() {
       labelsBackground.style.display = "block";
-      labelsModal.style.display = "flex";
+      labelsModal.style.display = "inline-block";
       labelsBackground.offsetHeight;
       labelsBackground.style.opacity = 1;
       labelsModal.offsetHeight;
       labelsModal.style.opacity = 1;
     });
     addLabelButton.addEventListener("click", function() {
-      var labelBox = document.createElement("div");
-      var labelBoxX;
-      var labelBoxY;
-      labelBox.classList.add("label-box");
-      labelBoxes.push(labelBox);
-      labelBoxCoordinates.push([0, 0]);
-      labelBox.innerHTML ="Label " + labelBoxes.length;
-      labelsContainer.appendChild(labelBox);
-      labelBox.addEventListener("mousedown", function(event) {
-        labelBoxX = event.clientX - labelBox.offsetLeft;
-        labelBoxY = event.clientY - labelBox.offsetTop;
-        labelBoxCoordinates[labelBoxes.indexOf(labelBox)] = [labelBoxX, labelBoxY];
-        window.addEventListener("mousemove", labelMove);
-        window.addEventListener("mouseup", function() {
-          window.removeEventListener("mousemove", labelMove);
-        });
-      });
-      function labelMove(event) {
-        labelBox.style.left = Math.max(Math.min(event.clientX - labelBoxX, labelsContainer.offsetWidth - labelBox.offsetWidth), 0) + "px";
-        labelBox.style.top = Math.max(Math.min(event.clientY - labelBoxY, labelsContainer.offsetHeight - labelBox.offsetHeight), 0) + "px";
-      }
+      addLabel(0, 0);
     });
     deleteLabelButton.addEventListener("click", function() {
       if (labelBoxes.length > 0) {
@@ -693,6 +689,35 @@ function initEditor() {
       labelsModal.style.opacity = 0;
       labelsBackground.addEventListener("transitionend", hideLabels);
     });
+  }
+
+  function addLabel(left, top) {
+    var labelBox = document.createElement("div");
+    var labelBoxX;
+    var labelBoxY;
+    labelBox.classList.add("label-box");
+    labelBoxes.push(labelBox);
+    labelBoxCoordinates.push([left, top]);
+    labelBox.style.left = left + "px";
+    labelBox.style.top = top + "px";
+    labelBox.innerHTML ="Label " + labelBoxes.length;
+    labelsContainer.appendChild(labelBox);
+    labelBox.addEventListener("mousedown", function(event) {
+      labelBoxX = event.clientX - labelBox.offsetLeft;
+      labelBoxY = event.clientY - labelBox.offsetTop;
+      window.addEventListener("mousemove", labelMove);
+      window.addEventListener("mouseup", updateCoordinates);
+    });
+    function labelMove(event) {
+      labelBox.style.left = Math.max(Math.min(event.clientX - labelBoxX, labelsContainer.offsetWidth - labelBox.offsetWidth), 0) + "px";
+      labelBox.style.top = Math.max(Math.min(event.clientY - labelBoxY, labelsContainer.offsetHeight - labelBox.offsetHeight), 0) + "px";
+    }
+    function updateCoordinates() {
+      window.removeEventListener("mousemove", labelMove);
+      labelBoxCoordinates[labelBoxes.indexOf(labelBox)][0] = labelBox.offsetLeft;
+      labelBoxCoordinates[labelBoxes.indexOf(labelBox)][1] = labelBox.offsetTop;
+      window.removeEventListener("mouseup", updateCoordinates);
+    }
   }
 
   function hideLabels() {
