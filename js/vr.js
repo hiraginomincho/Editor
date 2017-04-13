@@ -9,16 +9,29 @@ if (window.opener) {
 
 function initVR() {
   var vrButton = document.getElementById("vr-switch");
+  var playButton = document.getElementById("vr-play");
+  var playSim = false;
   vrButton.addEventListener("click", function() {
     windowHeight = window.innerHeight;
     vrDisplay.requestPresent([{source: renderer.domElement}]);
   });
+  playButton.addEventListener("click", function() {
+    if (playSim) {
+      playButton.innerHTML = "Play";
+    } else {
+      playButton.innerHTML = "Pause";
+    }
+    playSim = !playSim;
+  });
 
   var renderer = new THREE.WebGLRenderer();
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   var windowHeight;
 
   var hasBackground;
+
+  var shadows;
 
   var scene, vrControls, vrEffect, vrDisplay;;
   var dummy, camera;
@@ -71,17 +84,6 @@ function initVR() {
     vrEffect = new THREE.VREffect(renderer);
     vrEffect.setSize(window.innerWidth, window.innerHeight);
     vrEffect.autoSubmitFrame = false;
-
-    var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    var directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
-    directionalLight1.position.set(2, 8, 1).normalize();
-    scene.add(directionalLight1);
-
-    var directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
-    directionalLight2.position.set(-2, -8, -1).normalize();
-    scene.add(directionalLight2);
 
   /*
     directionalLight1.shadow.mapSize.width = 1024;
@@ -247,6 +249,8 @@ function initVR() {
     } else {
       hasBackground = true;
     }
+    shadows = worldJSON.shadows;
+    renderer.shadowMap.enabled = shadows;
     var labelsJSON = sceneJSON[1];
     for (var i = 0; i < labelsJSON.length; i++) {
       var labelJSON = labelsJSON[i];
@@ -285,10 +289,59 @@ function initVR() {
           objectGeometry = new THREE.TetrahedronGeometry(objectJSON.tetrahedronradius);
           break;
         default:
-          break;
+          return;
       }
       processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz);
     }
+    var lightsJSON = sceneJSON[3];
+    for (var i = 0; i < lightsJSON.length; i++) {
+      var lightJSON = lightsJSON[i];
+      switch (lightJSON.type) {
+        case "AmbientLight":
+          var ambientLight = new THREE.AmbientLight(lightJSON.color, lightJSON.intensity);
+          addLight(ambientLight);
+          break;
+        case "DirectionalLight":
+          var directionalLight = new THREE.DirectionalLight(lightJSON.color, lightJSON.intensity);
+          directionalLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          addLight(directionalLight);
+          break;
+        case "HemisphereLight":
+          var hemisphereLight = new THREE.HemisphereLight(lightJSON.skycolor, lightJSON.groundcolor, lightJSON.intensity);
+          hemisphereLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          addLight(hemisphereLight);
+          break;
+        case "PointLight":
+          var pointLight = new THREE.PointLight(lightJSON.color, lightJSON.intensity);
+          pointLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          addLight(pointLight);
+          break;
+        case "SpotLight":
+          var spotLight = new THREE.SpotLight(lightJSON.color, lightJSON.intensity, lightJSON.distance, lightJSON.angle, lightJSON.penumbra, lightJSON.decay);
+          spotLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          addLight(spotLight);
+          break;
+        default:
+          return;
+      }
+    }
+  }
+
+  function addLight(light) {
+    if (!light.isAmbientLight && !light.isHemisphereLight) {
+      light.shadow.mapSize.width = 512;
+      light.shadow.mapSize.height = 512;
+      light.shadow.camera.left = -25;
+      light.shadow.camera.right = 25;
+      light.shadow.camera.top = 25;
+      light.shadow.camera.bottom = -25;
+      light.shadow.camera.near = 0.5;
+      light.shadow.camera.far = 100;
+      if (shadows) {
+        light.castShadow = true;
+      }
+    }
+    scene.add(light);
   }
 
   function createHUD(i, texture, x, y) {
@@ -321,8 +374,10 @@ function initVR() {
 
   function render() {
     vrDisplay.requestAnimationFrame(render);
-    var deltaTime = clock.getDelta();
-    updatePhysics(deltaTime);
+    if (playSim) {
+      var deltaTime = clock.getDelta();
+      updatePhysics(deltaTime);
+    }
     vrControls.update();
     Reticulum.update();
     renderer.clear();
@@ -364,6 +419,10 @@ function initVR() {
       objectMaterial = new THREE.MeshPhongMaterial({color: color, map: texture, shading: THREE.FlatShading, side: THREE.DoubleSide});
     }
     var object = new THREE.Mesh(objectGeometry, objectMaterial);
+    if (shadows) {
+      object.castShadow = true;
+      object.receiveShadow = true;
+    }
     var objectShape = new Ammo.btConvexHullShape();
     for (var i = 0; i < objectGeometry.vertices.length; i++) {
       objectShape.addPoint(new Ammo.btVector3(objectGeometry.vertices[i].x, objectGeometry.vertices[i].y, objectGeometry.vertices[i].z));

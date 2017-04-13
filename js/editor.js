@@ -1,14 +1,19 @@
 "use strict";
 
 var sceneJSONString;
-var labelBoxes = [];
-var labelBoxCoordinates = [];
+
 initEditor();
 
 function initEditor() {
   var renderer = new THREE.WebGLRenderer();
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   var objects = [];
+  var lights = [];
+  var labelBoxes = [];
+  var labelBoxCoordinates = [];
+
+  var shadows = false;
 
   var scene, transformControls;
   var camera, orbitControls;
@@ -33,22 +38,30 @@ function initEditor() {
 
   var backgroundInput = document.getElementById("background");
 
+  var shadowsButton = document.getElementById("shadows");
+
+  var objectsTab = document.getElementById("objects-tab");
+  var lightsTab = document.getElementById("lights-tab");
+
   var objectList = document.getElementById("object-list");
   var selectedObjectDiv;
 
-  var positionXInput = document.getElementById("position-x");
-  var positionYInput = document.getElementById("position-y");
-  var positionZInput = document.getElementById("position-z");
+  var lightList = document.getElementById("light-list");
+  var selectedLightDiv;
 
-  var rotationXInput = document.getElementById("rotation-x");
-  var rotationYInput = document.getElementById("rotation-y");
-  var rotationZInput = document.getElementById("rotation-z");
+  var objectPositionXInput = document.getElementById("object-position-x");
+  var objectPositionYInput = document.getElementById("object-position-y");
+  var objectPositionZInput = document.getElementById("object-position-z");
+
+  var objectRotationXInput = document.getElementById("object-rotation-x");
+  var objectRotationYInput = document.getElementById("object-rotation-y");
+  var objectRotationZInput = document.getElementById("object-rotation-z");
 
   var scaleXInput = document.getElementById("scale-x");
   var scaleYInput = document.getElementById("scale-y");
   var scaleZInput = document.getElementById("scale-z");
 
-  var colorInput = document.getElementById("color");
+  var objectColorInput = document.getElementById("object-color");
   var textureInput = document.getElementById("texture");
 
   var massInput = document.getElementById("mass");
@@ -61,9 +74,17 @@ function initEditor() {
   var angularVelocityYInput = document.getElementById("angular-velocity-y");
   var angularVelocityZInput = document.getElementById("angular-velocity-z");
 
+  var lightPositionXInput;
+  var lightPositionYInput;
+  var lightPositionZInput;
+
+  var objectsTabBody = document.getElementById("objects-tab-body");
+  var lightsTabBody = document.getElementById("lights-tab-body");
+
   var parameterWrapper1 = document.getElementById("parameter-wrapper-1");
   var parameterWrapper2 = document.getElementById("parameter-wrapper-2");
   var parameterWrapper3 = document.getElementById("parameter-wrapper-3");
+  var parameterWrapper4 = document.getElementById("parameter-wrapper-4");
 
   var labelsBackground = document.getElementById("labels-background");
   var labelsModal = document.getElementById("labels-modal");
@@ -73,7 +94,7 @@ function initEditor() {
   render();
 
   initControlButtons();
-  initObjectButtons();
+  initLeftButtons();
   initParameterControls();
 
   function init() {
@@ -101,44 +122,47 @@ function initEditor() {
     scene.add(gridHelper);
 
     var boxGeometry = new THREE.BoxBufferGeometry(4, 4, 4);
-    var boxMaterial = new THREE.MeshPhongMaterial({color: 0x7f0000, shading: THREE.FlatShading, side: THREE.DoubleSide});
+    var boxMaterial = new THREE.MeshPhongMaterial({color: 0x551410, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var box = new THREE.Mesh(boxGeometry, boxMaterial);
     box.name = "Box";
     setOtherParameters(box);
-    addToScene(box, false);
+    addObjectToScene(box, false);
 
     box.position.y += 2;
 
     var sphereGeometry = new THREE.SphereBufferGeometry(2, 16, 16);
-    var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x007f00, shading: THREE.FlatShading, side: THREE.DoubleSide});
+    var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x1d1d47, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.name = "Sphere";
     setOtherParameters(sphere);
-    addToScene(sphere, false);
+    addObjectToScene(sphere, false);
 
     sphere.position.y += 12;
 
     var groundGeometry = new THREE.BoxBufferGeometry(24, 0.2, 24);
-    var groundMaterial = new THREE.MeshPhongMaterial({color: 0x304962, shading: THREE.FlatShading, side: THREE.DoubleSide});
+    var groundMaterial = new THREE.MeshPhongMaterial({color: 0x002955, shading: THREE.FlatShading, side: THREE.DoubleSide});
     var ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.name = "Ground";
     setOtherParameters(ground);
     ground.mass = 0;
-    addToScene(ground, false);
+    addObjectToScene(ground, false);
 
     ground.position.y = -0.1;
 
     var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
+    ambientLight.name = "Ambient Light";
+    addLightToScene(ambientLight, false);
 
-    var directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
-    directionalLight1.position.set(2, 8, 1).normalize();
-    scene.add(directionalLight1);
-
+    var directionalLight1 = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight1.position.set(4, 16, 2);
+    directionalLight1.name = "Directional Light";
+    addLightToScene(directionalLight1, false);
+/*
     var directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
-    directionalLight2.position.set(-2, -8, -1).normalize();
-    scene.add(directionalLight2);
-
+    directionalLight2.position.set(-4, -16, -2);
+    directionalLight2.name = "Directional Light";
+    addLightToScene(directionalLight2, false);
+*/
     var equirectShader = THREE.ShaderLib["equirect"];
 
     equirectMaterial = new THREE.ShaderMaterial({fragmentShader: getFrag(), vertexShader: equirectShader.vertexShader, uniforms: equirectShader.uniforms, depthWrite: false, side: THREE.BackSide});
@@ -152,6 +176,9 @@ function initEditor() {
 
     transformControls.addEventListener("change", function() {
       updateInputs();
+      if (CLICKED && !isObject(CLICKED) && (CLICKED.light.isDirectionalLight || CLICKED.light.isHemisphereLight || CLICKED.light.isSpotLight)) {
+        CLICKED.update();
+      }
     });
 
     raycaster = new THREE.Raycaster();
@@ -208,77 +235,203 @@ function initEditor() {
     onUpPosition.fromArray(getMousePosition(event));
     if (onDownPosition.distanceTo(onUpPosition) === 0) {
       raycaster.setFromCamera(mouse, camera);
-      var intersects = raycaster.intersectObjects(objects);
+      var intersects = raycaster.intersectObjects(objects.concat(lights));
       if (intersects.length > 0) {
-        focus(intersects[0].object);
+        if (isObject(intersects[0].object)) {
+          focusObject(intersects[0].object);
+        } else {
+          focusLight(intersects[0].object);
+        }
       } else if (CLICKED) {
         transformControls.detach();
+        parameterWrapper2.innerHTML = "";
+        parameterWrapper4.innerHTML = "";
+        if (isObject(CLICKED)) {
+          selectedObjectDiv.classList.remove("list-active");
+          selectedObjectDiv.classList.add("list-inactive");
+          selectedObjectDiv = null;
+        } else {
+          selectedLightDiv.classList.remove("list-active");
+          selectedLightDiv.classList.add("list-inactive");
+          selectedLightDiv = null;
+        }
         CLICKED = null;
         updateVisibility();
-        parameterWrapper2.innerHTML = "";
-        selectedObjectDiv.classList.remove("object-active");
-        selectedObjectDiv.classList.add("object-inactive");
-        selectedObjectDiv = null;
       }
     }
     editorDiv.children[0].removeEventListener("mouseup", onEditorMouseUp);
   }
 
-  function focus(object) {
+  function focusObject(object) {
     var objectDiv = objectList.children[objects.indexOf(object)];
-    objectDiv.classList.remove("object-inactive");
-    objectDiv.classList.add("object-active");
+    objectDiv.classList.remove("list-inactive");
+    objectDiv.classList.add("list-active");
     if (selectedObjectDiv && selectedObjectDiv != objectDiv) {
-      selectedObjectDiv.classList.remove("object-active");
-      selectedObjectDiv.classList.add("object-inactive");
+      selectedObjectDiv.classList.remove("list-active");
+      selectedObjectDiv.classList.add("list-inactive");
+    }
+    if (selectedLightDiv) {
+      selectedLightDiv.classList.remove("list-active");
+      selectedLightDiv.classList.add("list-inactive");
+      selectedLightDiv = null;
     }
     selectedObjectDiv = objectDiv;
     transformControls.attach(object);
     CLICKED = object;
-    updateInputs();
     updateVisibility();
     addObjectSpecificParameters();
+    updateInputs();
+    focusTab("Objects");
   }
 
-  function addToScene(object, focusObject) {
+  function focusLight(lightHelper) {
+    var lightDiv = lightList.children[lights.indexOf(lightHelper)];
+    lightDiv.classList.remove("list-inactive");
+    lightDiv.classList.add("list-active");
+    if (selectedLightDiv && selectedLightDiv != lightDiv) {
+      selectedLightDiv.classList.remove("list-active");
+      selectedLightDiv.classList.add("list-inactive");
+    }
+    if (selectedObjectDiv) {
+      selectedObjectDiv.classList.remove("list-active");
+      selectedObjectDiv.classList.add("list-inactive");
+      selectedObjectDiv = null;
+    }
+    selectedLightDiv = lightDiv;
+    if (!lightHelper.light.isAmbientLight) {
+      transformControls.attach(lightHelper.light);
+    } else {
+      transformControls.detach();
+    }
+    CLICKED = lightHelper;
+    updateVisibility();
+    addLightSpecificParameters();
+    updateInputs();
+    focusTab("Lights");
+  }
+
+  function addObjectToScene(object, focus) {
+    if (shadows) {
+      object.castShadow = true;
+      object.receiveShadow = true;
+    }
     scene.add(object);
     objects.push(object);
     addToObjectList(object);
-    if (focusObject) {
-      focus(object);
+    if (focus) {
+      focusObject(object);
     }
+  }
+
+  function addLightToScene(light, focus) {
+    if (!light.isAmbientLight && !light.isHemisphereLight) {
+      light.shadow.mapSize.width = 512;
+      light.shadow.mapSize.height = 512;
+      light.shadow.camera.left = -25;
+      light.shadow.camera.right = 25;
+      light.shadow.camera.top = 25;
+      light.shadow.camera.bottom = -25;
+      light.shadow.camera.near = 0.5;
+      light.shadow.camera.far = 100;
+      if (shadows) {
+        light.castShadow = true;
+      }
+    }
+    if (light.isAmbientLight) {
+      var ambientLightHelper = new THREE.Object3D();
+      ambientLightHelper.visible = false;
+      ambientLightHelper.light = light;
+      scene.add(ambientLightHelper);
+      scene.add(light);
+      lights.push(ambientLightHelper);
+      addToLightList(ambientLightHelper);
+      if (focus) {
+        focusLight(ambientLightHelper);
+      }
+    } else if (light.isDirectionalLight) {
+      var directionalLightPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide}));
+      directionalLightPlane.position.set(10, 0, 0);
+      //directionalLightPlane.visible = false;
+      var directionalLightHelper = new THREE.DirectionalLightHelper(light, 1);
+      scene.add(directionalLightPlane);
+      directionalLightPlane.add(directionalLightHelper);
+      directionalLightPlane.add(light);
+      lights.push(directionalLightPlane);
+      addToLightList(directionalLightHelper);
+      if (focus) {
+        focusLight(directionalLightHelper);
+      }
+    } else if (light.isHemisphereLight) {
+      var hemisphereLightHelper = new THREE.HemisphereLightHelper(light, 1);
+      scene.add(hemisphereLightHelper);
+      scene.add(light);
+      lights.push(hemisphereLightHelper);
+      addToLightList(hemisphereLightHelper);
+      if (focus) {
+        focusLight(hemisphereLightHelper);
+      }
+    } else if (light.isPointLight) {
+      var pointLightHelper = new THREE.PointLightHelper(light, 1);
+      scene.add(pointLightHelper);
+      scene.add(light);
+      lights.push(pointLightHelper);
+      addToLightList(pointLightHelper);
+      if (focus) {
+        focusLight(pointLightHelper);
+      }
+    } else if (light.isSpotLight) {
+      var spotLightHelper = new THREE.SpotLightHelper(light);
+      scene.add(spotLightHelper);
+      scene.add(light);
+      scene.add(light.target);
+      lights.push(spotLightHelper);
+      addToLightList(spotLightHelper);
+      if (focus) {
+        focusLight(spotLightHelper);
+      }
+    }
+  }
+
+  function isObject(t) {
+    return (typeof t.material !== "undefined" && t.material.isMeshPhongMaterial);
   }
 
   function updateInputs() {
     if (CLICKED) {
-      positionXInput.value = CLICKED.position.x.toFixed(3);
-      positionYInput.value = CLICKED.position.y.toFixed(3);
-      positionZInput.value = CLICKED.position.z.toFixed(3);
-      rotationXInput.value = (CLICKED.rotation.x * 180 / Math.PI).toFixed(3);
-      rotationYInput.value = (CLICKED.rotation.y * 180 / Math.PI).toFixed(3);
-      rotationZInput.value = (CLICKED.rotation.z * 180 / Math.PI).toFixed(3);
-      scaleXInput.value = CLICKED.scale.x.toFixed(3);
-      scaleYInput.value = CLICKED.scale.y.toFixed(3);
-      scaleZInput.value = CLICKED.scale.z.toFixed(3);
-      colorInput.value = "#" + CLICKED.material.color.getHexString();
-      textureInput.value = CLICKED.textureURL;
-      massInput.value = CLICKED.mass.toFixed(3);
-      linearVelocityXInput.value = CLICKED.linearVelocityX.toFixed(3);
-      linearVelocityYInput.value = CLICKED.linearVelocityY.toFixed(3);
-      linearVelocityZInput.value = CLICKED.linearVelocityZ.toFixed(3);
-      angularVelocityXInput.value = CLICKED.angularVelocityX.toFixed(3);
-      angularVelocityYInput.value = CLICKED.angularVelocityY.toFixed(3);
-      angularVelocityZInput.value = CLICKED.angularVelocityZ.toFixed(3);
+      if (isObject(CLICKED)) {
+        objectPositionXInput.value = CLICKED.position.x.toFixed(3);
+        objectPositionYInput.value = CLICKED.position.y.toFixed(3);
+        objectPositionZInput.value = CLICKED.position.z.toFixed(3);
+        objectRotationXInput.value = (CLICKED.rotation.x * 180 / Math.PI).toFixed(3);
+        objectRotationYInput.value = (CLICKED.rotation.y * 180 / Math.PI).toFixed(3);
+        objectRotationZInput.value = (CLICKED.rotation.z * 180 / Math.PI).toFixed(3);
+        scaleXInput.value = CLICKED.scale.x.toFixed(3);
+        scaleYInput.value = CLICKED.scale.y.toFixed(3);
+        scaleZInput.value = CLICKED.scale.z.toFixed(3);
+        objectColorInput.value = "#" + CLICKED.material.color.getHexString();
+        textureInput.value = CLICKED.textureURL;
+        massInput.value = CLICKED.mass.toFixed(3);
+        linearVelocityXInput.value = CLICKED.linearVelocityX.toFixed(3);
+        linearVelocityYInput.value = CLICKED.linearVelocityY.toFixed(3);
+        linearVelocityZInput.value = CLICKED.linearVelocityZ.toFixed(3);
+        angularVelocityXInput.value = CLICKED.angularVelocityX.toFixed(3);
+        angularVelocityYInput.value = CLICKED.angularVelocityY.toFixed(3);
+        angularVelocityZInput.value = CLICKED.angularVelocityZ.toFixed(3);
+      } else if (!CLICKED.light.isAmbientLight) {
+        lightPositionXInput.value = CLICKED.light.position.x.toFixed(3);
+        lightPositionYInput.value = CLICKED.light.position.y.toFixed(3);
+        lightPositionZInput.value = CLICKED.light.position.z.toFixed(3);
+      }
     }
   }
 
   function updateVisibility() {
-    if (CLICKED) {
-      parameterWrapper1.style.visibility = "visible";
-      parameterWrapper3.style.visibility = "visible";
+    if (CLICKED && isObject(CLICKED)) {
+      parameterWrapper1.style.display = "block";
+      parameterWrapper3.style.display = "block";
     } else {
-      parameterWrapper1.style.visibility = "hidden";
-      parameterWrapper3.style.visibility = "hidden";
+      parameterWrapper1.style.display = "none";
+      parameterWrapper3.style.display = "none";
     }
   }
 
@@ -287,17 +440,19 @@ function initEditor() {
     orbitControls.update();
     transformControls.update();
     raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(objects);
+    var intersects = raycaster.intersectObjects(objects.concat(lights));
     if (intersects.length > 0 && mouseInitialization) {
       if (INTERSECTED != intersects[0].object) {
-        if (INTERSECTED) {
+        if (INTERSECTED && isObject(INTERSECTED)) {
           INTERSECTED.material.emissive.setHex(0);
         }
         INTERSECTED = intersects[0].object;
-        INTERSECTED.material.emissive.setHex(0x222222);
+        if (isObject(INTERSECTED)) {
+          INTERSECTED.material.emissive.setHex(0x222222);
+        }
       }
     } else {
-      if (INTERSECTED) {
+      if (INTERSECTED && isObject(INTERSECTED)) {
         INTERSECTED.material.emissive.setHex(0);
       }
       INTERSECTED = null;
@@ -341,23 +496,51 @@ function initEditor() {
     var duplicateButton = document.getElementById("duplicate");
     duplicateButton.addEventListener("click", function() {
       if (CLICKED) {
-        var cloneGeometry = CLICKED.geometry.clone();
-        cloneGeometry.parameters = CLICKED.geometry.parameters;
-        cloneGeometry.type = CLICKED.geometry.type;
-        var cloneMaterial = CLICKED.material.clone();
-        var clone = CLICKED.clone();
-        clone.geometry = cloneGeometry;
-        clone.material = cloneMaterial;
-        clone.position.addScalar(2);
-        clone.textureURL = CLICKED.textureURL;
-        clone.mass = CLICKED.mass;
-        clone.linearVelocityX = CLICKED.linearVelocityX;
-        clone.linearVelocityY = CLICKED.linearVelocityY;
-        clone.linearVelocityZ = CLICKED.linearVelocityZ;
-        clone.angularVelocityX = CLICKED.angularVelocityX;
-        clone.angularVelocityY = CLICKED.angularVelocityY;
-        clone.angularVelocityZ = CLICKED.angularVelocityZ;
-        addToScene(clone, true);
+        if (isObject(CLICKED)) {
+          var cloneGeometry = CLICKED.geometry.clone();
+          cloneGeometry.parameters = CLICKED.geometry.parameters;
+          cloneGeometry.type = CLICKED.geometry.type;
+          var cloneMaterial = CLICKED.material.clone();
+          var clone = CLICKED.clone();
+          clone.geometry = cloneGeometry;
+          clone.material = cloneMaterial;
+          clone.position.addScalar(2);
+          clone.textureURL = CLICKED.textureURL;
+          clone.mass = CLICKED.mass;
+          clone.linearVelocityX = CLICKED.linearVelocityX;
+          clone.linearVelocityY = CLICKED.linearVelocityY;
+          clone.linearVelocityZ = CLICKED.linearVelocityZ;
+          clone.angularVelocityX = CLICKED.angularVelocityX;
+          clone.angularVelocityY = CLICKED.angularVelocityY;
+          clone.angularVelocityZ = CLICKED.angularVelocityZ;
+          addObjectToScene(clone, true);
+        } else {
+          if (CLICKED.light.isAmbientLight) {
+            var ambientLight = new THREE.AmbientLight(CLICKED.light.color, CLICKED.light.intensity);
+            ambientLight.name = CLICKED.light.name;
+            addLightToScene(ambientLight, true);
+          } else if (CLICKED.light.isDirectionalLight) {
+            var directionalLight = new THREE.DirectionalLight(CLICKED.light.color, CLICKED.light.intensity);
+            directionalLight.position.set(CLICKED.light.position.x + 2, CLICKED.light.position.y + 2, CLICKED.light.position.z + 2);
+            directionalLight.name = CLICKED.light.name;
+            addLightToScene(directionalLight, true);
+          } else if (CLICKED.light.isHemisphereLight) {
+            var hemisphereLight = new THREE.HemisphereLight(CLICKED.light.color, CLICKED.light.groundColor, CLICKED.light.intensity);
+            hemisphereLight.position.set(CLICKED.light.position.x + 2, CLICKED.light.position.y + 2, CLICKED.light.position.z + 2);
+            hemisphereLight.name = CLICKED.light.name;
+            addLightToScene(hemisphereLight, true);
+          } else if (CLICKED.light.isPointLight) {
+            var pointLight = new THREE.PointLight(CLICKED.light.color, CLICKED.light.intensity);
+            pointLight.position.set(CLICKED.light.position.x + 2, CLICKED.light.position.y + 2, CLICKED.light.position.z + 2);
+            pointLight.name = CLICKED.light.name;
+            addLightToScene(pointLight, true);
+          } else if (CLICKED.light.isSpotLight) {
+            var spotLight = new THREE.SpotLight(CLICKED.light.color, CLICKED.light.intensity, CLICKED.light.distance, CLICKED.light.angle, CLICKED.light.penumbra, CLICKED.light.decay);
+            spotLight.position.set(CLICKED.light.position.x + 2, CLICKED.light.position.y + 2, CLICKED.light.position.z + 2);
+            spotLight.name = CLICKED.light.name;
+            addLightToScene(spotLight, true);
+          }
+        }
       }
     });
     var importButton = document.getElementById("import");
@@ -388,20 +571,58 @@ function initEditor() {
     deleteButton.addEventListener("click", function() {
       if (CLICKED) {
         transformControls.detach();
-        var index = objects.indexOf(CLICKED);
-        objects.splice(objects.indexOf(CLICKED), 1);
+        if (isObject(CLICKED)) {
+          var index = objects.indexOf(CLICKED);
+          objects.splice(index, 1);
+          selectedObjectDiv = null;
+          objectList.removeChild(objectList.children[index]);
+        } else {
+          var index = lights.indexOf(CLICKED);
+          lights.splice(index, 1);
+          selectedLightDiv = null;
+          lightList.removeChild(lightList.children[index]);
+          scene.remove(CLICKED.light);
+        }
         scene.remove(CLICKED);
         CLICKED = null;
         updateVisibility();
         parameterWrapper2.innerHTML = "";
-        selectedObjectDiv = null;
-        objectList.removeChild(objectList.children[index]);
+        parameterWrapper4.innerHTML = "";
       }
     });
     var clearButton = document.getElementById("clear");
     clearButton.addEventListener("click", function() {
       clearScene();
     });
+    objectsTab.addEventListener("click", function() {
+      focusTab("Objects");
+    });
+    lightsTab.addEventListener("click", function() {
+      focusTab("Lights");
+    });
+  }
+
+  function focusTab(tab) {
+    switch (tab) {
+      case "Objects":
+        objectsTab.classList.remove("objects-tab-inactive");
+        objectsTab.classList.add("objects-tab-active");
+        lightsTab.classList.remove("lights-tab-active");
+        lightsTab.classList.add("lights-tab-inactive");
+        objectsTabBody.style.display = "block";
+        lightsTabBody.style.display = "none";
+        break;
+      case "Lights":
+        lightsTab.classList.remove("lights-tab-inactive");
+        lightsTab.classList.add("lights-tab-active");
+        objectsTab.classList.remove("objects-tab-active");
+        objectsTab.classList.add("objects-tab-inactive");
+        lightsTabBody.style.display = "block";
+        objectsTabBody.style.display = "none";
+        break;
+      default:
+        return;
+    }
   }
 
   function importScene(sceneJSON) {
@@ -422,6 +643,8 @@ function initEditor() {
       equirectMaterial.uniforms["tEquirect"].value = null;
       renderer.autoClear = true;
     }
+    shadows = worldJSON.shadows;
+    updateShadows();
     var labelsJSON = sceneJSON[1];
     for (var i = 0; i < labelsJSON.length; i++) {
       var labelJSON = labelsJSON[i];
@@ -480,7 +703,43 @@ function initEditor() {
       object.angularVelocityY = objectJSON.angularvelocityy;
       object.angularVelocityZ = objectJSON.angularvelocityz;
       object.name = objectJSON.name;
-      addToScene(object, false);
+      addObjectToScene(object, false);
+    }
+    var lightsJSON = sceneJSON[3];
+    for (var i = 0; i < lightsJSON.length; i++) {
+      var lightJSON = lightsJSON[i];
+      switch (lightJSON.type) {
+        case "AmbientLight":
+          var ambientLight = new THREE.AmbientLight(lightJSON.color, lightJSON.intensity);
+          ambientLight.name = lightJSON.name;
+          addLightToScene(ambientLight, false);
+          break;
+        case "DirectionalLight":
+          var directionalLight = new THREE.DirectionalLight(lightJSON.color, lightJSON.intensity);
+          directionalLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          directionalLight.name = lightJSON.name;
+          addLightToScene(directionalLight, false);
+          break;
+        case "HemisphereLight":
+          var hemisphereLight = new THREE.HemisphereLight(lightJSON.skycolor, lightJSON.groundcolor, lightJSON.intensity);
+          hemisphereLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          hemisphereLight.name = lightJSON.name;
+          addLightToScene(hemisphereLight, false);
+          break;
+        case "PointLight":
+          var pointLight = new THREE.PointLight(lightJSON.color, lightJSON.intensity);
+          pointLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          pointLight.name = lightJSON.name;
+          addLightToScene(pointLight, false);
+          break;
+        case "SpotLight":
+          var spotLight = new THREE.SpotLight(lightJSON.color, lightJSON.intensity, lightJSON.distance, lightJSON.angle, lightJSON.penumbra, lightJSON.decay);
+          spotLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+          spotLight.name = lightJSON.name;
+          addLightToScene(spotLight, false);
+        default:
+          return;
+      }
     }
   }
 
@@ -491,12 +750,20 @@ function initEditor() {
     for (var i = 0; i < objects.length; i++) {
       scene.remove(objects[i]);
     }
+    for (var i = 0; i < lights.length; i++) {
+      scene.remove(lights[i]);
+      scene.remove(lights[i].light);
+    }
     objects = [];
+    lights = [];
     CLICKED = null;
     updateVisibility();
     parameterWrapper2.innerHTML = "";
+    parameterWrapper4.innerHTML = "";
     selectedObjectDiv = null;
+    selectedLightDiv = null;
     objectList.innerHTML = "";
+    lightList.innerHTML = "";
   }
 
   function generateSceneJSONString() {
@@ -509,6 +776,7 @@ function initEditor() {
     worldJSON.cameray = cameraYInput.valueAsNumber;
     worldJSON.cameraz = cameraZInput.valueAsNumber;
     worldJSON.background = backgroundInput.value;
+    worldJSON.shadows = shadows;
     sceneJSON.push(worldJSON);
     var labelsJSON = [];
     for (var i = 0; i < labelBoxes.length; i++) {
@@ -572,7 +840,7 @@ function initEditor() {
           objectJSON.tetrahedronradius = object.geometry.parameters.radius;
           break;
         default:
-          break;
+          return;
       }
       objectJSON.linearvelocityx = object.linearVelocityX;
       objectJSON.linearvelocityy = object.linearVelocityY;
@@ -583,6 +851,48 @@ function initEditor() {
       objectsJSON.push(objectJSON);
     }
     sceneJSON.push(objectsJSON);
+    var lightsJSON = [];
+    for (var i = 0; i < lights.length; i++) {
+      var lightJSON = {};
+      var light = lights[i].light;
+      lightJSON.type = light.type;
+      lightJSON.name = light.name;
+      if (light.isAmbientLight) {
+        lightJSON.color = light.color;
+        lightJSON.intensity = light.intensity;
+      } else if (light.isDirectionalLight) {
+        lightJSON.positionx = light.position.x;
+        lightJSON.positiony = light.position.y;
+        lightJSON.positionz = light.position.z;
+        lightJSON.color = light.color;
+        lightJSON.intensity = light.intensity;
+      } else if (light.isHemisphereLight) {
+        lightJSON.positionx = light.position.x;
+        lightJSON.positiony = light.position.y;
+        lightJSON.positionz = light.position.z;
+        lightJSON.skycolor = light.color;
+        lightJSON.groundcolor = light.groundColor;
+        lightJSON.intensity = light.intensity;
+      } else if (light.isPointLight) {
+        lightJSON.positionx = light.position.x;
+        lightJSON.positiony = light.position.y;
+        lightJSON.positionz = light.position.z;
+        lightJSON.color = light.color;
+        lightJSON.intensity = light.intensity;
+      } else if (light.isSpotLight) {
+        lightJSON.positionx = light.position.x;
+        lightJSON.positiony = light.position.y;
+        lightJSON.positionz = light.position.z;
+        lightJSON.color = light.color;
+        lightJSON.intensity = light.intensity;
+        lightJSON.distance = light.distance;
+        lightJSON.angle = light.angle;
+        lightJSON.penumbra = light.penumbra;
+        lightJSON.decay = light.decay;
+      }
+      lightsJSON.push(lightJSON);
+    }
+    sceneJSON.push(lightsJSON);
     return JSON.stringify(sceneJSON, null, "\t");
   }
 
@@ -590,7 +900,7 @@ function initEditor() {
     window.open("data:application/json," + encodeURIComponent(generateSceneJSONString()), "_blank");
   }
 
-  function initObjectButtons() {
+  function initLeftButtons() {
     var boxButton = document.getElementById("box");
     var coneButton = document.getElementById("cone");
     var cylinderButton = document.getElementById("cylinder");
@@ -599,72 +909,109 @@ function initEditor() {
     var octahedronButton = document.getElementById("octahedron");
     var sphereButton = document.getElementById("sphere");
     var tetrahedronButton = document.getElementById("tetrahedron");
+    var ambientButton = document.getElementById("ambient");
+    var directionalButton = document.getElementById("directional");
+    var hemisphereButton = document.getElementById("hemisphere");
+    var pointButton = document.getElementById("point");
+    var spotButton = document.getElementById("spot");
     var labelsButton = document.getElementById("labels");
     var addLabelButton = document.getElementById("add-label");
     var deleteLabelButton = document.getElementById("delete-label");
     boxButton.addEventListener("click", function() {
       var boxGeometry = new THREE.BoxBufferGeometry(4, 4, 4);
-      var boxMaterial = new THREE.MeshPhongMaterial({color: 0x7f7f00, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var boxMaterial = new THREE.MeshPhongMaterial({color: 0x551410, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var box = new THREE.Mesh(boxGeometry, boxMaterial);
       box.name = "Box";
       setOtherParameters(box);
-      addToScene(box, true);
+      addObjectToScene(box, true);
     });
     coneButton.addEventListener("click", function() {
       var coneGeometry = new THREE.ConeBufferGeometry(2, 4, 16);
-      var coneMaterial = new THREE.MeshPhongMaterial({color: 0x7f007f, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var coneMaterial = new THREE.MeshPhongMaterial({color: 0x553200, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var cone = new THREE.Mesh(coneGeometry, coneMaterial);
       cone.name = "Cone";
       setOtherParameters(cone);
-      addToScene(cone, true);
+      addObjectToScene(cone, true);
     });
     cylinderButton.addEventListener("click", function() {
       var cylinderGeometry = new THREE.CylinderBufferGeometry(2, 2, 4, 16);
-      var cylinderMaterial = new THREE.MeshPhongMaterial({color: 0x007f7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var cylinderMaterial = new THREE.MeshPhongMaterial({color: 0x554400, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
       cylinder.name = "Cylinder";
       setOtherParameters(cylinder);
-      addToScene(cylinder, true);
+      addObjectToScene(cylinder, true);
     });
     dodecahedronButton.addEventListener("click", function() {
       var dodecahedronGeometry = new THREE.DodecahedronBufferGeometry(2);
-      var dodecahedronMaterial = new THREE.MeshPhongMaterial({color: 0x7f7fff, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var dodecahedronMaterial = new THREE.MeshPhongMaterial({color: 0x194821, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
       dodecahedron.name = "Dodecahedron";
       setOtherParameters(dodecahedron);
-      addToScene(dodecahedron, true);
+      addObjectToScene(dodecahedron, true);
     });
     icosahedronButton.addEventListener("click", function() {
       var icosahedronGeometry = new THREE.IcosahedronBufferGeometry(2);
-      var icosahedronMaterial = new THREE.MeshPhongMaterial({color: 0x7fff7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var icosahedronMaterial = new THREE.MeshPhongMaterial({color: 0x1e4353, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
       icosahedron.name = "Icosahedron";
       setOtherParameters(icosahedron);
-      addToScene(icosahedron, true);
+      addObjectToScene(icosahedron, true);
     });
     octahedronButton.addEventListener("click", function() {
       var octahedronGeometry = new THREE.OctahedronBufferGeometry(2);
-      var octahedronMaterial = new THREE.MeshPhongMaterial({color: 0xff7f7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var octahedronMaterial = new THREE.MeshPhongMaterial({color: 0x002955, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var octahedron = new THREE.Mesh(octahedronGeometry, octahedronMaterial);
       octahedron.name = "Octahedron";
       setOtherParameters(octahedron);
-      addToScene(octahedron, true);
+      addObjectToScene(octahedron, true);
     });
     sphereButton.addEventListener("click", function() {
       var sphereGeometry = new THREE.SphereBufferGeometry(2, 16, 16);
-      var sphereMaterial = new THREE.MeshPhongMaterial({color: 0xffff7f, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x1d1d47, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       sphere.name = "Sphere";
       setOtherParameters(sphere);
-      addToScene(sphere, true);
+      addObjectToScene(sphere, true);
     });
     tetrahedronButton.addEventListener("click", function() {
       var tetrahedronGeometry = new THREE.TetrahedronBufferGeometry(2);
-      var tetrahedronMaterial = new THREE.MeshPhongMaterial({color: 0xff7fff, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      var tetrahedronMaterial = new THREE.MeshPhongMaterial({color: 0x550f1c, shading: THREE.FlatShading, side: THREE.DoubleSide});
       var tetrahedron = new THREE.Mesh(tetrahedronGeometry, tetrahedronMaterial);
       tetrahedron.name = "Tetrahedron";
       setOtherParameters(tetrahedron);
-      addToScene(tetrahedron, true);
+      addObjectToScene(tetrahedron, true);
+    });
+    ambientButton.addEventListener("click", function() {
+      var ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      ambientLight.name = "Ambient Light";
+      addLightToScene(ambientLight, true);
+    })
+    directionalButton.addEventListener("click", function() {
+      var directionalLight = new THREE.DirectionalLight(0x00ffff, 1);
+      directionalLight.position.set(2, 8, 1);
+      directionalLight.name = "Directional Light";
+      addLightToScene(directionalLight, true);
+    });
+    hemisphereButton.addEventListener("click", function() {
+      var hemisphereLight = new THREE.HemisphereLight(0xff0000, 0x0000ff, 1);
+      hemisphereLight.name = "Hemisphere Light";
+      addLightToScene(hemisphereLight, true);
+    })
+    pointButton.addEventListener("click", function() {
+      var pointLight = new THREE.PointLight(0xff0000, 1);
+      pointLight.position.set(10, 10, 0);
+      pointLight.name = "Point Light";
+      addLightToScene(pointLight, true);
+    });
+    spotButton.addEventListener("click", function() {
+      var spotLight = new THREE.SpotLight(0x00ff00, 2, 40, Math.PI / 6, 0.2, 1);
+      spotLight.position.set(0, 10, 10);
+      spotLight.name = "Spot Light";
+      addLightToScene(spotLight, true);
+    })
+    shadowsButton.addEventListener("click", function() {
+      shadows = !shadows;
+      updateShadows();
     });
     labelsButton.addEventListener("click", function() {
       labelsBackground.style.display = "block";
@@ -689,6 +1036,29 @@ function initEditor() {
       labelsModal.style.opacity = 0;
       labelsBackground.addEventListener("transitionend", hideLabels);
     });
+  }
+
+  function updateShadows() {
+    if (shadows) {
+      shadowsButton.classList.remove("wide-inactive");
+      shadowsButton.classList.add("wide-active");
+      shadowsButton.innerHTML = "Shadows Enabled";
+    } else {
+      shadowsButton.classList.remove("wide-active");
+      shadowsButton.classList.add("wide-inactive");
+      shadowsButton.innerHTML = "Shadows Disabled";
+    }
+    renderer.shadowMap.enabled = shadows;
+    for (var i = 0; i < objects.length; i++) {
+      objects[i].castShadow = shadows;
+      objects[i].receiveShadow = shadows;
+    }
+    for (var i = 0; i < lights.length; i++) {
+      var light = lights[i].light;
+      if (!light.isAmbientLight && !light.isHemisphereLight) {
+        light.castShadow = shadows;
+      }
+    }
   }
 
   function addLabel(left, top) {
@@ -739,23 +1109,28 @@ function initEditor() {
 
   function addToObjectList(object) {
     var objectDiv = document.createElement("div");
-    objectDiv.classList.add("object-item");
-    objectDiv.classList.add("object-inactive");
+    objectDiv.classList.add("list-item");
+    objectDiv.classList.add("list-inactive");
     objectDiv.innerHTML = object.name;
     objectList.appendChild(objectDiv);
     objectDiv.addEventListener("click", function() {
-      objectDiv.classList.remove("object-inactive");
-      objectDiv.classList.add("object-active");
+      objectDiv.classList.remove("list-inactive");
+      objectDiv.classList.add("list-active");
       if (selectedObjectDiv && selectedObjectDiv != objectDiv) {
-        selectedObjectDiv.classList.remove("object-active");
-        selectedObjectDiv.classList.add("object-inactive");
+        selectedObjectDiv.classList.remove("list-active");
+        selectedObjectDiv.classList.add("list-inactive");
+      }
+      if (selectedLightDiv) {
+        selectedLightDiv.classList.remove("list-active");
+        selectedLightDiv.classList.add("list-inactive");
+        selectedLightDiv = null;
       }
       selectedObjectDiv = objectDiv;
       transformControls.attach(object);
       CLICKED = object;
-      updateInputs();
       updateVisibility();
       addObjectSpecificParameters();
+      updateInputs();
     });
     objectDiv.addEventListener("dblclick", function() {
       makeEditable(objectDiv);
@@ -771,6 +1146,52 @@ function initEditor() {
       }
       object.name = objectDiv.innerHTML;
       objectDiv.contentEditable = false;
+    });
+  }
+
+  function addToLightList(lightHelper) {
+    var lightDiv = document.createElement("div");
+    lightDiv.classList.add("list-item");
+    lightDiv.classList.add("list-inactive");
+    lightDiv.innerHTML = lightHelper.light.name;
+    lightList.appendChild(lightDiv);
+    lightDiv.addEventListener("click", function() {
+      lightDiv.classList.remove("list-inactive");
+      lightDiv.classList.add("list-active");
+      if (selectedLightDiv && selectedLightDiv != lightDiv) {
+        selectedLightDiv.classList.remove("list-active");
+        selectedLightDiv.classList.add("list-inactive");
+      }
+      if (selectedObjectDiv) {
+        selectedObjectDiv.classList.remove("list-active");
+        selectedObjectDiv.classList.add("list-inactive");
+        selectedObjectDiv = null;
+      }
+      selectedLightDiv = lightDiv;
+      if (!lightHelper.light.isAmbientLight) {
+        transformControls.attach(lightHelper.light);
+      } else {
+        transformControls.detach();
+      }
+      CLICKED = lightHelper;
+      updateVisibility();
+      addLightSpecificParameters();
+      updateInputs();
+    });
+    lightDiv.addEventListener("dblclick", function() {
+      makeEditable(lightDiv);
+    });
+    lightDiv.addEventListener("keydown", function(event) {
+      if (event.keyCode === 13/*Enter*/) {
+        lightDiv.blur();
+      }
+    });
+    lightDiv.addEventListener("blur", function() {
+      if (lightDiv.innerHTML === "") {
+        lightDiv.innerHTML = "Light";
+      }
+      lightHelper.light.name = lightDiv.innerHTML;
+      lightDiv.contentEditable = false;
     });
   }
 
@@ -792,18 +1213,18 @@ function initEditor() {
     addParameterListeners(cameraYInput, "world");
     addParameterListeners(cameraZInput, "world");
     addParameterListeners(backgroundInput, "background");
-    addParameterListeners(positionXInput, "positionx");
-    addParameterListeners(positionYInput, "positiony");
-    addParameterListeners(positionZInput, "positionz");
-    addParameterListeners(rotationXInput, "rotationx");
-    addParameterListeners(rotationYInput, "rotationy");
-    addParameterListeners(rotationZInput, "rotationz");
+    addParameterListeners(objectPositionXInput, "objectpositionx");
+    addParameterListeners(objectPositionYInput, "objectpositiony");
+    addParameterListeners(objectPositionZInput, "objectpositionz");
+    addParameterListeners(objectRotationXInput, "objectrotationx");
+    addParameterListeners(objectRotationYInput, "objectrotationy");
+    addParameterListeners(objectRotationZInput, "objectrotationz");
     addParameterListeners(scaleXInput, "scalex");
     addParameterListeners(scaleYInput, "scaley");
     addParameterListeners(scaleZInput, "scalez");
-    colorInput.addEventListener("input", function() {
+    objectColorInput.addEventListener("input", function() {
       if (CLICKED) {
-        CLICKED.material.color = new THREE.Color(colorInput.value);
+        CLICKED.material.color = new THREE.Color(objectColorInput.value);
       }
     });
     addParameterListeners(textureInput, "texture");
@@ -836,7 +1257,7 @@ function initEditor() {
     }
     if (clickedValue === "coneradialsegments" || clickedValue === "cylinderradialsegments" || clickedValue === "spherewidthsegments" || clickedValue === "sphereheightsegments") {
       input.value = Math.abs(input.valueAsNumber.toFixed());
-    } else if (clickedValue === "mass") {
+    } else if (clickedValue === "mass" || clickedValue === "intensity" || clickedValue === "distance" || clickedValue === "angle" || clickedValue === "penumbra" || clickedValue === "decay") {
       input.value = Math.abs(input.valueAsNumber).toFixed(3);
     } else if (clickedValue !== "texture" && clickedValue !== "background") {
       input.value = input.valueAsNumber.toFixed(3);
@@ -853,22 +1274,22 @@ function initEditor() {
           renderer.autoClear = false;
         }
         break;
-      case "positionx":
+      case "objectpositionx":
         CLICKED.position.x = input.valueAsNumber;
         break;
-      case "positiony":
+      case "objectpositiony":
         CLICKED.position.y = input.valueAsNumber;
         break;
-      case "positionz":
+      case "objectpositionz":
         CLICKED.position.z = input.valueAsNumber;
         break;
-      case "rotationx":
+      case "objectrotationx":
         CLICKED.rotation.x = input.valueAsNumber * Math.PI / 180;
         break;
-      case "rotationy":
+      case "objectrotationy":
         CLICKED.rotation.y = input.valueAsNumber * Math.PI / 180;
         break;
-      case "rotationz":
+      case "objectrotationz":
         CLICKED.rotation.z = input.valueAsNumber * Math.PI / 180;
         break;
       case "scalex":
@@ -963,6 +1384,41 @@ function initEditor() {
       case "angularvelocityz":
         CLICKED.angularVelocityZ = input.valueAsNumber;
         break;
+      case "lightpositionx":
+        CLICKED.light.position.x = input.valueAsNumber;
+        CLICKED.light.updateMatrixWorld();
+        CLICKED.update();
+        break;
+      case "lightpositiony":
+        CLICKED.light.position.y = input.valueAsNumber;
+        CLICKED.light.updateMatrixWorld();
+        CLICKED.update();
+        break;
+      case "lightpositionz":
+        CLICKED.light.position.z = input.valueAsNumber;
+        CLICKED.light.updateMatrixWorld();
+        CLICKED.update();
+        break;
+      case "intensity":
+        CLICKED.light.intensity = input.valueAsNumber;
+        CLICKED.update();
+        break;
+      case "distance":
+        CLICKED.light.distance = input.valueAsNumber;
+        CLICKED.update();
+        break;
+      case "angle":
+        CLICKED.light.angle = input.valueAsNumber;
+        CLICKED.update();
+        break;
+      case "penumbra":
+        CLICKED.light.penumbra = input.valueAsNumber;
+        CLICKED.update();
+        break;
+      case "decay":
+        CLICKED.light.decay = input.valueAsNumber;
+        CLICKED.update();
+        break;
       default:
         break;
     }
@@ -976,9 +1432,9 @@ function initEditor() {
   function addObjectSpecificParameters() {
     switch (CLICKED.geometry.type) {
       case "BoxBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Width</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"box-width\" type=\"number\"></div></div>" +
-        "<div class=\"parameter-label\">Height</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"box-height\" type=\"number\"></div></div>" +
-        "<div class=\"parameter-label\">Depth</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"box-depth\" type=\"number\"></div></div>";
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Width</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"box-width\" type=\"number\" step=\"0.001\"></div></div>" +
+        "<div class=\"parameter-label\">Height</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"box-height\" type=\"number\" step=\"0.001\"></div></div>" +
+        "<div class=\"parameter-label\">Depth</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"box-depth\" type=\"number\" step=\"0.001\"></div></div>";
         var boxWidthInput = document.getElementById("box-width");
         var boxHeightInput = document.getElementById("box-height");
         var boxDepthInput = document.getElementById("box-depth");
@@ -990,8 +1446,8 @@ function initEditor() {
         addParameterListeners(boxDepthInput, "boxdepth");
         break;
       case "ConeBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cone-radius\" type=\"number\"></div></div>" +
-        "<div class=\"parameter-label\">Height</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cone-height\" type=\"number\"></div></div>" +
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cone-radius\" type=\"number\" step=\"0.001\"></div></div>" +
+        "<div class=\"parameter-label\">Height</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cone-height\" type=\"number\" step=\"0.001\"></div></div>" +
         "<div class=\"parameter-label\">Radial Segments</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cone-radial-segments\" type=\"number\"></div></div>";
         var coneRadiusInput = document.getElementById("cone-radius");
         var coneHeightInput = document.getElementById("cone-height");
@@ -1004,9 +1460,9 @@ function initEditor() {
         addParameterListeners(coneRadialSegmentsInput, "coneradialsegments");
         break;
       case "CylinderBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Top Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cylinder-radius-top\" type=\"number\"></div></div>" +
-        "<div class=\"parameter-label\">Bottom Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cylinder-radius-bottom\" type=\"number\"></div></div>" +
-        "<div class=\"parameter-label\">Height</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cylinder-height\" type=\"number\"></div></div>" +
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Top Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cylinder-radius-top\" type=\"number\" step=\"0.001\"></div></div>" +
+        "<div class=\"parameter-label\">Bottom Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cylinder-radius-bottom\" type=\"number\" step=\"0.001\"></div></div>" +
+        "<div class=\"parameter-label\">Height</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cylinder-height\" type=\"number\" step=\"0.001\"></div></div>" +
         "<div class=\"parameter-label\">Radial Segments</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"cylinder-radial-segments\" type=\"number\"></div></div>";
         var cylinderRadiusTopInput = document.getElementById("cylinder-radius-top");
         var cylinderRadiusBottomInput = document.getElementById("cylinder-radius-bottom");
@@ -1022,25 +1478,25 @@ function initEditor() {
         addParameterListeners(cylinderRadialSegmentsInput, "cylinderradialsegments");
         break;
       case "DodecahedronBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"dodecahedron-radius\" type=\"number\"></div></div>";
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"dodecahedron-radius\" type=\"number\" step=\"0.001\"></div></div>";
         var dodecahedronRadiusInput = document.getElementById("dodecahedron-radius");
         dodecahedronRadiusInput.value = CLICKED.geometry.parameters.radius.toFixed(3);
         addParameterListeners(dodecahedronRadiusInput, "dodecahedronradius");
         break;
       case "IcosahedronBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"icosahedron-radius\" type=\"number\"></div></div>";
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"icosahedron-radius\" type=\"number\" step=\"0.001\"></div></div>";
         var icosahedronRadiusInput = document.getElementById("icosahedron-radius");
         icosahedronRadiusInput.value = CLICKED.geometry.parameters.radius.toFixed(3);
         addParameterListeners(icosahedronRadiusInput, "icosahedronradius");
         break;
       case "OctahedronBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"octahedron-radius\" type=\"number\"></div></div>";
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"octahedron-radius\" type=\"number\" step=\"0.001\"></div></div>";
         var octahedronRadiusInput = document.getElementById("octahedron-radius");
         octahedronRadiusInput.value = CLICKED.geometry.parameters.radius.toFixed(3);
         addParameterListeners(octahedronRadiusInput, "octahedronradius");
         break;
       case "SphereBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"sphere-radius\" type=\"number\"></div></div>" +
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"sphere-radius\" type=\"number\" step=\"0.001\"></div></div>" +
         "<div class=\"parameter-label\">Width Segments</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"sphere-width-segments\" type=\"number\"></div></div>" +
         "<div class=\"parameter-label\">Height Segments</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"sphere-height-segments\" type=\"number\"></div></div>";
         var sphereRadiusInput = document.getElementById("sphere-radius");
@@ -1054,16 +1510,171 @@ function initEditor() {
         addParameterListeners(sphereHeightSegmentsInput, "sphereheightsegments");
         break;
       case "TetrahedronBufferGeometry":
-        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"tetrahedron-radius\" type=\"number\"></div></div>";
+        parameterWrapper2.innerHTML = "<div class=\"parameter-label\">Radius</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"tetrahedron-radius\" type=\"number\" step=\"0.001\"></div></div>";
         var tetrahedronRadiusInput = document.getElementById("tetrahedron-radius");
         tetrahedronRadiusInput.value = CLICKED.geometry.parameters.radius.toFixed(3);
         addParameterListeners(tetrahedronRadiusInput, "tetrahedronradius");
         break;
       default:
-        parameterWrapper2.style.visibility = "hidden";
+        console.log("parameter 2 none");
+        parameterWrapper2.style.display = "none";
         parameterWrapper2.innerHTML = "";
         return;
     }
-    parameterWrapper2.style.visibility = "visible";
+    parameterWrapper2.style.display = "block";
+    parameterWrapper4.innerHTML = "";
+  }
+
+  function addLightSpecificParameters() {
+    if (CLICKED.light.isAmbientLight) {
+      parameterWrapper4.innerHTML = "<hr><div class=\"parameter-label\">Color</div><div class=\"parameter-row\"><input class=\"color\" id=\"light-color\" type=\"color\"></div>" +
+      "<div class=\"parameter-label\">Intensity</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"intensity\" type=\"number\" step=\"0.001\"></div></div>";
+      var lightColorInput = document.getElementById("light-color");
+      var intensityInput = document.getElementById("intensity");
+      lightColorInput.value = "#" + CLICKED.light.color.getHexString();
+      intensityInput.value = CLICKED.light.intensity.toFixed(3);
+      lightColorInput.addEventListener("input", function() {
+        if (CLICKED) {
+          CLICKED.light.color = new THREE.Color(lightColorInput.value);
+        }
+      });
+      addParameterListeners(intensityInput, "intensity");
+    } else if (CLICKED.light.isDirectionalLight) {
+      parameterWrapper4.innerHTML = "<hr><div class=\"parameter-label\">Position</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-x\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-y\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-z\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Color</div><div class=\"parameter-row\"><input class=\"color\" id=\"light-color\" type=\"color\"></div>" +
+      "<div class=\"parameter-label\">Intensity</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"intensity\" type=\"number\" step=\"0.001\"></div></div>";
+      lightPositionXInput = document.getElementById("light-position-x");
+      lightPositionYInput = document.getElementById("light-position-y");
+      lightPositionZInput = document.getElementById("light-position-z");
+      var lightColorInput = document.getElementById("light-color");
+      var intensityInput = document.getElementById("intensity");
+      lightPositionXInput.value = CLICKED.light.position.x.toFixed(3);
+      lightPositionYInput.value = CLICKED.light.position.y.toFixed(3);
+      lightPositionZInput.value = CLICKED.light.position.z.toFixed(3);
+      lightColorInput.value = "#" + CLICKED.light.color.getHexString();
+      intensityInput.value = CLICKED.light.intensity.toFixed(3);
+      addParameterListeners(lightPositionXInput, "lightpositionx");
+      addParameterListeners(lightPositionYInput, "lightpositiony");
+      addParameterListeners(lightPositionZInput, "lightpositionz");
+      lightColorInput.addEventListener("input", function() {
+        if (CLICKED) {
+          CLICKED.light.color = new THREE.Color(lightColorInput.value);
+          CLICKED.update();
+        }
+      });
+      addParameterListeners(intensityInput, "intensity");
+    } else if (CLICKED.light.isHemisphereLight) {
+      parameterWrapper4.innerHTML = "<hr><div class=\"parameter-label\">Position</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-x\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-y\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-z\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Sky Color</div><div class=\"parameter-row\"><input class=\"color\" id=\"light-sky-color\" type=\"color\"></div>" +
+      "<div class=\"parameter-label\">Ground Color</div><div class=\"parameter-row\"><input class=\"color\" id=\"light-ground-color\" type=\"color\"></div>" +
+      "<div class=\"parameter-label\">Intensity</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"intensity\" type=\"number\" step=\"0.001\"></div></div>";
+      lightPositionXInput = document.getElementById("light-position-x");
+      lightPositionYInput = document.getElementById("light-position-y");
+      lightPositionZInput = document.getElementById("light-position-z");
+      var lightSkyColorInput = document.getElementById("light-sky-color");
+      var lightGroundColorInput = document.getElementById("light-ground-color");
+      var intensityInput = document.getElementById("intensity");
+      lightPositionXInput.value = CLICKED.light.position.x.toFixed(3);
+      lightPositionYInput.value = CLICKED.light.position.y.toFixed(3);
+      lightPositionZInput.value = CLICKED.light.position.z.toFixed(3);
+      lightSkyColorInput.value = "#" + CLICKED.light.color.getHexString();
+      lightGroundColorInput.value = "#" + CLICKED.light.groundColor.getHexString();
+      intensityInput.value = CLICKED.light.intensity.toFixed(3);
+      addParameterListeners(lightPositionXInput, "lightpositionx");
+      addParameterListeners(lightPositionYInput, "lightpositiony");
+      addParameterListeners(lightPositionZInput, "lightpositionz");
+      lightSkyColorInput.addEventListener("input", function() {
+        if (CLICKED) {
+          CLICKED.light.color = new THREE.Color(lightSkyColorInput.value);
+          CLICKED.update();
+        }
+      });
+      lightGroundColorInput.addEventListener("input", function() {
+        if (CLICKED) {
+          CLICKED.light.groundColor = new THREE.Color(lightGroundColorInput.value);
+          CLICKED.update();
+        }
+      });
+      addParameterListeners(intensityInput, "intensity");
+    } else if (CLICKED.light.isPointLight) {
+      parameterWrapper4.innerHTML = "<hr><div class=\"parameter-label\">Position</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-x\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-y\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-z\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Color</div><div class=\"parameter-row\"><input class=\"color\" id=\"light-color\" type=\"color\"></div>" +
+      "<div class=\"parameter-label\">Intensity</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"intensity\" type=\"number\" step=\"0.001\"></div></div>";
+      lightPositionXInput = document.getElementById("light-position-x");
+      lightPositionYInput = document.getElementById("light-position-y");
+      lightPositionZInput = document.getElementById("light-position-z");
+      var lightColorInput = document.getElementById("light-color");
+      var intensityInput = document.getElementById("intensity");
+      lightPositionXInput.value = CLICKED.light.position.x.toFixed(3);
+      lightPositionYInput.value = CLICKED.light.position.y.toFixed(3);
+      lightPositionZInput.value = CLICKED.light.position.z.toFixed(3);
+      lightColorInput.value = "#" + CLICKED.light.color.getHexString();
+      intensityInput.value = CLICKED.light.intensity.toFixed(3);
+      addParameterListeners(lightPositionXInput, "lightpositionx");
+      addParameterListeners(lightPositionYInput, "lightpositiony");
+      addParameterListeners(lightPositionZInput, "lightpositionz");
+      lightColorInput.addEventListener("input", function() {
+        if (CLICKED) {
+          CLICKED.light.color = new THREE.Color(lightColorInput.value);
+          CLICKED.update();
+        }
+      });
+      addParameterListeners(intensityInput, "intensity");
+    } else if (CLICKED.light.isSpotLight) {
+      parameterWrapper4.innerHTML = "<hr><div class=\"parameter-label\">Position</div><div class=\"row parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-x\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-y\" type=\"number\" step=\"0.001\"></div>" +
+      "<div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"light-position-z\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Color</div><div class=\"parameter-row\"><input class=\"color\" id=\"light-color\" type=\"color\"></div>" +
+      "<div class=\"parameter-label\">Intensity</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"intensity\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Distance</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"distance\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Angle</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"angle\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Penumbra</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"penumbra\" type=\"number\" step=\"0.001\"></div></div>" +
+      "<div class=\"parameter-label\">Decay</div><div class=\"parameter-row\"><div class=\"col-4 parameter-item\"><input class=\"input-text parameter-box\" id=\"decay\" type=\"number\" step=\"0.001\"></div></div>";
+      lightPositionXInput = document.getElementById("light-position-x");
+      lightPositionYInput = document.getElementById("light-position-y");
+      lightPositionZInput = document.getElementById("light-position-z");
+      var lightColorInput = document.getElementById("light-color");
+      var intensityInput = document.getElementById("intensity");
+      var distanceInput = document.getElementById("distance");
+      var angleInput = document.getElementById("angle");
+      var penumbraInput = document.getElementById("penumbra");
+      var decayInput = document.getElementById("decay");
+      lightPositionXInput.value = CLICKED.light.position.x.toFixed(3);
+      lightPositionYInput.value = CLICKED.light.position.y.toFixed(3);
+      lightPositionZInput.value = CLICKED.light.position.z.toFixed(3);
+      lightColorInput.value = "#" + CLICKED.light.color.getHexString();
+      intensityInput.value = CLICKED.light.intensity.toFixed(3);
+      distanceInput.value = CLICKED.light.distance.toFixed(3);
+      angleInput.value = CLICKED.light.angle.toFixed(3);
+      penumbraInput.value = CLICKED.light.penumbra.toFixed(3);
+      decayInput.value = CLICKED.light.decay.toFixed(3);
+      addParameterListeners(lightPositionXInput, "lightpositionx");
+      addParameterListeners(lightPositionYInput, "lightpositiony");
+      addParameterListeners(lightPositionZInput, "lightpositionz");
+      lightColorInput.addEventListener("input", function() {
+        if (CLICKED) {
+          CLICKED.light.color = new THREE.Color(lightColorInput.value);
+          CLICKED.update();
+        }
+      });
+      addParameterListeners(intensityInput, "intensity");
+      addParameterListeners(distanceInput, "distance");
+      addParameterListeners(angleInput, "angle");
+      addParameterListeners(penumbraInput, "penumbra");
+      addParameterListeners(decayInput, "decay");
+    } else {
+      console.log("parameter 4 none");
+      parameterWrapper4.style.display = "none";
+      parameterWrapper4.innerHTML = "";
+      return;
+    }
+    parameterWrapper4.style.display = "block";
+    parameterWrapper2.innerHTML = "";
   }
 }
