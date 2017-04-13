@@ -193,6 +193,12 @@ div > canvas {
   color: #32383f;
 }
 
+.control-disabled {
+  border: 1px solid #999;
+  color: #999;
+  cursor: default;
+}
+
 #right-panel {
   background-color: #32383f;
   padding: 1rem;

@@ -40,6 +40,11 @@ function initEditor() {
 
   var shadowsButton = document.getElementById("shadows");
 
+  var translateButton = document.getElementById("translate");
+  var rotateButton = document.getElementById("rotate");
+  var scaleButton = document.getElementById("scale");
+  var trsEnabled = true;
+
   var objectsTab = document.getElementById("objects-tab");
   var lightsTab = document.getElementById("lights-tab");
 
@@ -243,6 +248,9 @@ function initEditor() {
           focusLight(intersects[0].object);
         }
       } else if (CLICKED) {
+        if (!trsEnabled) {
+          enableTRS();
+        }
         transformControls.detach();
         parameterWrapper2.innerHTML = "";
         parameterWrapper4.innerHTML = "";
@@ -276,6 +284,9 @@ function initEditor() {
       selectedLightDiv = null;
     }
     selectedObjectDiv = objectDiv;
+    if (!trsEnabled) {
+      enableTRS();
+    }
     transformControls.attach(object);
     CLICKED = object;
     updateVisibility();
@@ -298,6 +309,9 @@ function initEditor() {
       selectedObjectDiv = null;
     }
     selectedLightDiv = lightDiv;
+    if (trsEnabled) {
+      disableRS();
+    }
     if (!lightHelper.light.isAmbientLight) {
       transformControls.attach(lightHelper.light);
     } else {
@@ -457,37 +471,64 @@ function initEditor() {
     renderer.render(scene, camera);
   };
 
+  function enableTRS() {
+    translateButton.classList.remove("control-disabled");
+    rotateButton.classList.remove("control-disabled");
+    scaleButton.classList.remove("control-disabled");
+    translateButton.addEventListener("click", enableTranslate);
+    rotateButton.addEventListener("click", enableRotate);
+    scaleButton.addEventListener("click", enableScale);
+    trsEnabled = true;
+  }
+
+  function enableTranslate() {
+    translateButton.classList.remove("control-inactive");
+    translateButton.classList.add("control-active");
+    rotateButton.classList.remove("control-active");
+    rotateButton.classList.add("control-inactive");
+    scaleButton.classList.remove("control-active");
+    scaleButton.classList.add("control-inactive");
+    transformControls.setMode("translate");
+  }
+
+  function enableRotate() {
+    rotateButton.classList.remove("control-inactive");
+    rotateButton.classList.add("control-active");
+    translateButton.classList.remove("control-active");
+    translateButton.classList.add("control-inactive");
+    scaleButton.classList.remove("control-active");
+    scaleButton.classList.add("control-inactive");
+    transformControls.setMode("rotate");
+  }
+
+  function enableScale() {
+    scaleButton.classList.remove("control-inactive");
+    scaleButton.classList.add("control-active");
+    translateButton.classList.remove("control-active");
+    translateButton.classList.add("control-inactive");
+    rotateButton.classList.remove("control-active");
+    rotateButton.classList.add("control-inactive");
+    transformControls.setMode("scale");
+  }
+
+  function disableRS() {
+    translateButton.removeEventListener("click", enableTranslate);
+    rotateButton.removeEventListener("click", enableRotate);
+    scaleButton.removeEventListener("click", enableScale);
+    translateButton.classList.remove("control-inactive");
+    translateButton.classList.add("control-active");
+    rotateButton.classList.remove("control-active");
+    rotateButton.classList.remove("control-inactive");
+    rotateButton.classList.add("control-disabled");
+    scaleButton.classList.remove("control-active");
+    scaleButton.classList.remove("control-inactive");
+    scaleButton.classList.add("control-disabled");
+    transformControls.setMode("translate");
+    trsEnabled = false;
+  }
+
   function initControlButtons() {
-    var translateButton = document.getElementById("translate");
-    var rotateButton = document.getElementById("rotate");
-    var scaleButton = document.getElementById("scale");
-    translateButton.addEventListener("click", function() {
-      translateButton.classList.remove("control-inactive");
-      translateButton.classList.add("control-active");
-      rotateButton.classList.remove("control-active");
-      rotateButton.classList.add("control-inactive");
-      scaleButton.classList.remove("control-active");
-      scaleButton.classList.add("control-inactive");
-      transformControls.setMode("translate");
-    });
-    rotateButton.addEventListener("click", function() {
-      rotateButton.classList.remove("control-inactive");
-      rotateButton.classList.add("control-active");
-      translateButton.classList.remove("control-active");
-      translateButton.classList.add("control-inactive");
-      scaleButton.classList.remove("control-active");
-      scaleButton.classList.add("control-inactive");
-      transformControls.setMode("rotate");
-    });
-    scaleButton.addEventListener("click", function() {
-      scaleButton.classList.remove("control-inactive");
-      scaleButton.classList.add("control-active");
-      translateButton.classList.remove("control-active");
-      translateButton.classList.add("control-inactive");
-      rotateButton.classList.remove("control-active");
-      rotateButton.classList.add("control-inactive");
-      transformControls.setMode("scale");
-    });
+    enableTRS();
     var duplicateButton = document.getElementById("duplicate");
     duplicateButton.addEventListener("click", function() {
       if (CLICKED) {
@@ -1121,6 +1162,9 @@ function initEditor() {
         selectedLightDiv = null;
       }
       selectedObjectDiv = objectDiv;
+      if (!trsEnabled) {
+        enableTRS();
+      }
       transformControls.attach(object);
       CLICKED = object;
       updateVisibility();
@@ -1163,6 +1207,9 @@ function initEditor() {
         selectedObjectDiv = null;
       }
       selectedLightDiv = lightDiv;
+      if (trsEnabled) {
+        disableRS();
+      }
       if (!lightHelper.light.isAmbientLight) {
         transformControls.attach(lightHelper.light);
       } else {
