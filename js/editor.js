@@ -349,14 +349,10 @@ function initEditor() {
         focusLight(ambientLightHelper);
       }
     } else if (light.isDirectionalLight) {
-      var directionalLightPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide}));
-      directionalLightPlane.position.set(10, 0, 0);
-      //directionalLightPlane.visible = false;
       var directionalLightHelper = new THREE.DirectionalLightHelper(light, 1);
-      scene.add(directionalLightPlane);
-      directionalLightPlane.add(directionalLightHelper);
-      directionalLightPlane.add(light);
-      lights.push(directionalLightPlane);
+      scene.add(directionalLightHelper);
+      scene.add(light);
+      lights.push(directionalLightHelper);
       addToLightList(directionalLightHelper);
       if (focus) {
         focusLight(directionalLightHelper);
@@ -383,7 +379,6 @@ function initEditor() {
       var spotLightHelper = new THREE.SpotLightHelper(light);
       scene.add(spotLightHelper);
       scene.add(light);
-      scene.add(light.target);
       lights.push(spotLightHelper);
       addToLightList(spotLightHelper);
       if (focus) {
