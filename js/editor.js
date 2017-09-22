@@ -219,8 +219,9 @@ function initEditor() {
   }
 
   function getMousePosition(event) {
-    var xPos = ((event.clientX - window.innerWidth / 6) / renderer.domElement.clientWidth) * 2 - 1;
-    var yPos = -((event.clientY - renderer.domElement.offsetTop) / renderer.domElement.clientHeight) * 2 + 1;
+    var rect = renderer.domElement.getBoundingClientRect();
+    var xPos = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    var yPos = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     return [xPos, yPos];
   }
 
