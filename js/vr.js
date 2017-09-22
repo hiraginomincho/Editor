@@ -55,7 +55,10 @@ function initVR() {
 
   var idToObject = {};
   var idToPhysicsBody = {};
-  var id = -1;
+  var objectID = -1;
+
+  var idToLight = {};
+  var lightID = -1;
 
   var inVR = false;
 
@@ -69,6 +72,7 @@ function initVR() {
     //renderer.shadowMap.enabled = true;
     //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
+    canvas = renderer.domElement;
 
     cameraCube = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10000);
 
@@ -84,17 +88,6 @@ function initVR() {
     vrEffect = new THREE.VREffect(renderer);
     vrEffect.setSize(window.innerWidth, window.innerHeight);
     vrEffect.autoSubmitFrame = false;
-
-  /*
-    directionalLight1.shadow.mapSize.width = 1024;
-    directionalLight1.shadow.mapSize.height = 1024;
-    directionalLight1.shadow.camera.left = -25;
-    directionalLight1.shadow.camera.right = 25;
-    directionalLight1.shadow.camera.top = 25;
-    directionalLight1.shadow.camera.bottom = -25;
-    directionalLight1.shadow.camera.near = 0.5;
-    directionalLight1.shadow.camera.far = 500;
-  */
 
     var collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
     var dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
@@ -227,7 +220,7 @@ function initVR() {
       body.setActivationState(4);
     }
     physicsWorld.addRigidBody(body);
-    idToPhysicsBody[id] = body;
+    idToPhysicsBody[objectID] = body;
   }
 
   function importScene(sceneJSON) {
@@ -341,7 +334,10 @@ function initVR() {
         light.castShadow = true;
       }
     }
+    lightID++;
     scene.add(light);
+    idToLight[lightID] = light;
+    return lightID;
   }
 
   function createHUD(i, texture, x, y) {
@@ -377,6 +373,9 @@ function initVR() {
     if (playSim) {
       var deltaTime = clock.getDelta();
       updatePhysics(deltaTime);
+      if (typeof frameUpdate === "function") {
+        frameUpdate();
+      }
     }
     vrControls.update();
     Reticulum.update();
@@ -413,10 +412,10 @@ function initVR() {
     });
     var objectMaterial;
     if (textureURL === "") {
-      objectMaterial = new THREE.MeshPhongMaterial({color: color, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      objectMaterial = new THREE.MeshPhongMaterial({color: color, flatShading: true, side: THREE.DoubleSide});
     } else {
       var texture = new THREE.TextureLoader().load(textureURL);
-      objectMaterial = new THREE.MeshPhongMaterial({color: color, map: texture, shading: THREE.FlatShading, side: THREE.DoubleSide});
+      objectMaterial = new THREE.MeshPhongMaterial({color: color, map: texture, flatShading: true, side: THREE.DoubleSide});
     }
     var object = new THREE.Mesh(objectGeometry, objectMaterial);
     if (shadows) {
@@ -430,50 +429,78 @@ function initVR() {
     object.position.set(positionx, positiony, positionz);
     object.rotation.set(rotationx, rotationy, rotationz);
     objectShape.setMargin(margin);
-    id++;
-    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, id);
-    idToObject[id] = object;
-    return id;
+    objectID++;
+    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, objectID);
+    idToObject[objectID] = object;
+    return objectID;
   }
 
-  addBox = function addBox({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7f7f00, textureURL = "", mass = 10, width = 4, height = 4, depth = 4, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addBox = function addBox({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x551410, textureURL = "", mass = 10, width = 4, height = 4, depth = 4, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var boxGeometry = new THREE.BoxGeometry(width, height, depth);
     return processObject(boxGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
   }
 
-  addCone = function addCone({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7f007f, textureURL = "", mass = 10, radius = 2, height = 4, radialSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addCone = function addCone({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x553200, textureURL = "", mass = 10, radius = 2, height = 4, radialSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var coneGeometry = new THREE.ConeGeometry(radius, height, radialSegments);
     return processObject(coneGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
   }
 
-  addCylinder = function addCylinder({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x007f7f, textureURL = "", mass = 10, radiusTop = 2, radiusBottom = 2, height = 4, radialSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addCylinder = function addCylinder({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x554400, textureURL = "", mass = 10, radiusTop = 2, radiusBottom = 2, height = 4, radialSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
     return processObject(cylinderGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
   }
 
-  addDodecahedron = function addDodecahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7f7fff, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addDodecahedron = function addDodecahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x194821, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var dodecahedronGeometry = new THREE.DodecahedronGeometry(radius);
     return processObject(dodecahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
   }
 
-  addIcosahedron = function addIcosahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x7fff7f, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addIcosahedron = function addIcosahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x1e4353, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var icosahedronGeometry = new THREE.IcosahedronGeometry(radius);
     return processObject(icosahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
   }
 
-  addOctahedron = function addOctahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0xff7f7f, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addOctahedron = function addOctahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x002955, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var octahedronGeometry = new THREE.OctahedronGeometry(radius);
     return processObject(octahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
   }
 
-  addSphere = function addSphere({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0xffff7f, textureURL = "", mass = 10, radius = 2, widthSegments = 16, heightSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addSphere = function addSphere({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x1d1d47, textureURL = "", mass = 10, radius = 2, widthSegments = 16, heightSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var sphereGeometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
     return processObject(sphereGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
   }
 
-  addTetrahedron = function addTetrahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0xff7fff, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
+  addTetrahedron = function addTetrahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x550f1c, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
     var tetrahedronGeometry = new THREE.TetrahedronGeometry(radius);
     return processObject(tetrahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
+  }
+
+  addAmbientLight = function addAmbientLight({color = 0xffffff, intensity = 0.5} = {}) {
+    var ambientLight = new THREE.AmbientLight(color, intensity);
+    return addLight(ambientLight);
+  }
+
+  addDirectionalLight = function addDirectionalLight({positionx = 0, positiony = 0, positionz = 0, color = 0x00ffff, intensity = 1} = {}) {
+    var directionalLight = new THREE.DirectionalLight(color, intensity);
+    directionalLight.position.set(positionx, positiony, positionz);
+    return addLight(directionalLight);
+  }
+
+  addHemisphereLight = function addHemisphereLight({skycolor = 0xff0000, groundcolor = 0x0000ff, intensity = 1} = {}) {
+    var hemisphereLight = new THREE.HemisphereLight(skycolor, groundcolor, intensity);
+    return addLight(hemisphereLight);
+  }
+
+  addPointLight = function addPointLight({positionx = 10, positiony = 10, positionz = 0, color = 0xff0000, intensity = 1} = {}) {
+    var pointLight = new THREE.PointLight(color, intensity);
+    pointLight.position.set(positionx, positiony, positionz);
+    return addLight(pointLight);
+  }
+
+  addSpotLight = function addSpotLight({positionx = 0, positiony = 10, positionz = 10, color = 0x00ff00, intensity = 10, distance = 40, angle = 0.5236, penumbra = 0.2, decay = 1} = {}) {
+    var spotLight = new THREE.SpotLight(color, intensity, distance, angle, penumbra, decay);
+    spotLight.position.set(positionx, positiony, positionz);
+    return addLight(spotLight);
   }
 
   removeObject = function removeObject(id) {
@@ -483,6 +510,15 @@ function initVR() {
       physicsWorld.removeRigidBody(idToPhysicsBody[id]);
       delete idToObject[id];
       delete idToPhysicsBody[id];
+    } else {
+      return "invalid id";
+    }
+  }
+
+  removeLight = function removeLight(id) {
+    if (idToLight.hasOwnProperty(id)) {
+      scene.remove(idToLight[id]);
+      delete idToLight[id];
     } else {
       return "invalid id";
     }
@@ -636,6 +672,15 @@ function initVR() {
     return hudTexts[i];
   }
 
+  setObjectPosition = function setObjectPosition(id, x, y, z) {
+    if (idToObject.hasOwnProperty(id)) {
+      idToObject[id].position.set(x, y, z);
+      rigidBodies.indexOf(idToObject[id]).position.set(x, y, z);
+    } else {
+      return "invalid id";
+    }
+  }
+
   setObjectColor = function setObjectColor(id, hex) {
     if (idToObject.hasOwnProperty(id)) {
       idToObject[id].material.color = new THREE.Color(hex);
@@ -697,6 +742,13 @@ var addSphere;
 var addTetrahedron;
 var removeObject;
 
+var addAmbientLight;
+var addDirectionalLight;
+var addHemisphereLight;
+var addPointLight;
+var addSpotLight;
+var removeLight;
+
 var getObjectCount;
 
 var getObjectPositionX;
@@ -723,6 +775,7 @@ var getCameraZ;
 
 var getHUDText;
 
+var setObjectPosition;
 var setObjectColor;
 
 var setObjectLinearVelocity;
@@ -733,3 +786,7 @@ var setCamera;
 var setBackground;
 
 var setHUDText;
+
+var canvas;
+
+var frameUpdate;
