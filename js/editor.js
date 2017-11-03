@@ -589,7 +589,7 @@ function initEditor() {
       if (this.value !== "") {
         var reader = new FileReader();
         reader.onload = function(event) {
-          importScene(JSON.parse(event.target.result));
+          importScene(event.target.result);
         };
         reader.readAsText(event.target.files[0]);
         this.value = "";
@@ -662,7 +662,8 @@ function initEditor() {
     }
   }
 
-  function importScene(sceneJSON) {
+  function importScene(sceneJSONString) {
+    var sceneJSON = JSON.parse(sceneJSONString);
     var worldJSON = sceneJSON[0];
     gravityXInput.value = worldJSON.gravityx.toFixed(3);
     gravityYInput.value = worldJSON.gravityy.toFixed(3);
@@ -1444,7 +1445,9 @@ function initEditor() {
         break;
       case "intensity":
         CLICKED.light.intensity = input.valueAsNumber;
-        CLICKED.update();
+        if (!CLICKED.light.isAmbientLight) {
+          CLICKED.update();
+        }
         break;
       case "distance":
         CLICKED.light.distance = input.valueAsNumber;
