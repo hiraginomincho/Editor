@@ -16,6 +16,7 @@ function initVR() {
     windowHeight = window.innerHeight;
     if (vrDisplay) {
       vrDisplay.requestPresent([{source: renderer.domElement}]);
+      renderer.domElement.requestFullscreen();
     } else {
       window.alert("VR not supported: navigator.getVRDisplays() is empty.");
     }
