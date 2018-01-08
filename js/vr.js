@@ -142,7 +142,7 @@ function initVR() {
     navigator.getVRDisplays().then(function(vrDisplays) {
         if (vrDisplays.length) {
           vrDisplay = vrDisplays[0];
-          controls = new THREE.VRControls(dummy);
+          controls = new THREE.VRControls(camera);
           vrDisplay.requestAnimationFrame(render);
         } else {
           controls = new THREE.OrbitControls(dummy, renderer.domElement);
