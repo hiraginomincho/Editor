@@ -8,12 +8,17 @@ if (window.opener) {
 }
 
 function initVR() {
+  var polyfill = new WebVRPolyfill();
   var vrButton = document.getElementById("vr-switch");
   var playButton = document.getElementById("vr-play");
   var playSim = false;
   vrButton.addEventListener("click", function() {
     windowHeight = window.innerHeight;
-    vrDisplay.requestPresent([{source: renderer.domElement}]);
+    if (vrDisplay) {
+      vrDisplay.requestPresent([{source: renderer.domElement}]);
+    } else {
+      window.alert("VR not supported: navigator.getVRDisplays() is empty.");
+    }
   });
   playButton.addEventListener("click", function() {
     if (playSim) {
@@ -33,7 +38,7 @@ function initVR() {
 
   var shadows;
 
-  var scene, vrControls, vrEffect, vrDisplay;;
+  var scene, controls, vrEffect, vrDisplay;;
   var dummy, camera;
 
   var cameraCube, sceneCube, equirectMaterial;
@@ -134,10 +139,14 @@ function initVR() {
         }
     });
 
-    navigator.getVRDisplays().then(function(displays) {
-        if (displays.length > 0) {
-          vrDisplay = displays[0];
+    navigator.getVRDisplays().then(function(vrDisplays) {
+        if (vrDisplays.length) {
+          vrDisplay = vrDisplays[0];
+          controls = new THREE.VRControls(dummy);
           vrDisplay.requestAnimationFrame(render);
+        } else {
+          controls = new THREE.OrbitControls(dummy, renderer.domElement);
+          requestAnimationFrame(render);
         }
       });
 
@@ -233,7 +242,6 @@ function initVR() {
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10000);
     camera.position.set(0, 0, 0);
     dummy.add(camera);
-    vrControls = new THREE.VRControls(camera);
     if (worldJSON.background !== "") {
       var equirectTexture = new THREE.TextureLoader().load(worldJSON.background);
       equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
@@ -369,7 +377,11 @@ function initVR() {
   }
 
   function render() {
-    vrDisplay.requestAnimationFrame(render);
+    if (vrDisplay) {
+      vrDisplay.requestAnimationFrame(render);
+    } else {
+      requestAnimationFrame(render);
+    }
     if (playSim) {
       var deltaTime = clock.getDelta();
       updatePhysics(deltaTime);
@@ -377,7 +389,7 @@ function initVR() {
         frameUpdate();
       }
     }
-    vrControls.update();
+    controls.update();
     Reticulum.update();
     renderer.clear();
     cameraCube.rotation.copy(camera.rotation);
