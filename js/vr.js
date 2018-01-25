@@ -9,14 +9,42 @@ if (window.opener) {
 
 function initVR() {
   var polyfill = new WebVRPolyfill();
+  var fullscreenButton = document.getElementById("vr-fullscreen");
   var vrButton = document.getElementById("vr-switch");
   var playButton = document.getElementById("vr-play");
   var playSim = false;
+  document.addEventListener("fullscreenchange", function() {
+    console.log("fullscreenchange");
+  });
+  document.addEventListener("webkitfullscreenchange", function() {
+    console.log("webkitfullscreenchange");
+  });
+  document.addEventListener("fullscreenerror", function() {
+    console.log("fullscreenerror");
+  });
+  document.addEventListener("webkitfullscreenerror", function() {
+    console.log("webkitfullscreenerror");
+  });
+  fullscreenButton.addEventListener("click", function() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+    console.log("requesting fullscreen");
+  });
   vrButton.addEventListener("click", function() {
     windowHeight = window.innerHeight;
     if (vrDisplay) {
       vrDisplay.requestPresent([{source: renderer.domElement}]);
-      renderer.domElement.requestFullscreen();
     } else {
       window.alert("VR not supported: navigator.getVRDisplays() is empty.");
     }
@@ -26,6 +54,11 @@ function initVR() {
       playButton.innerHTML = "Play";
     } else {
       playButton.innerHTML = "Pause";
+      if (typeof procedures !== "undefined") {
+        if (typeof procedures.onstart === "function") {
+          procedures.onstart();
+        }
+      }
     }
     playSim = !playSim;
   });
@@ -39,8 +72,8 @@ function initVR() {
 
   var shadows;
 
-  var scene, controls, vrEffect, vrDisplay;;
-  var dummy, camera;
+  var scene, controls, vrEffect, vrDisplay;
+  var camera;
 
   var cameraCube, sceneCube, equirectMaterial;
 
@@ -59,14 +92,18 @@ function initVR() {
   var clock = new THREE.Clock();
   var transformAux1 = new Ammo.btTransform();
 
+  var idToObjectProperties = {};
   var idToObject = {};
   var idToPhysicsBody = {};
   var objectID = -1;
 
+  var idToLightProperties = {};
   var idToLight = {};
   var lightID = -1;
 
   var inVR = false;
+
+  var raycaster;
 
   init();
 
@@ -78,7 +115,6 @@ function initVR() {
     //renderer.shadowMap.enabled = true;
     //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
-    canvas = renderer.domElement;
 
     cameraCube = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10000);
 
@@ -109,6 +145,8 @@ function initVR() {
     sceneCube.add(backgroundMesh);
 
     importScene(JSON.parse(sceneJSONString));
+
+    raycaster = new THREE.Raycaster();
 
     Reticulum.init(camera, {
         proximity: false,
@@ -141,12 +179,12 @@ function initVR() {
     });
 
     navigator.getVRDisplays().then(function(vrDisplays) {
-        if (vrDisplays.length) {
+        if (false && vrDisplays.length) {
           vrDisplay = vrDisplays[0];
           controls = new THREE.VRControls(camera);
           vrDisplay.requestAnimationFrame(render);
         } else {
-          controls = new THREE.OrbitControls(dummy, renderer.domElement);
+          controls = new THREE.OrbitControls(camera, renderer.domElement);
           requestAnimationFrame(render);
         }
       });
@@ -154,6 +192,84 @@ function initVR() {
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("vrdisplaypresentchange", onWindowResize);
     window.addEventListener("vrdisplaypresentchange", resizeHUDs);
+    window.addEventListener("touchstart", onTouchStart);
+    window.addEventListener("touchmove", onTouchMove);
+    window.addEventListener("touchend", onTouchEnd);
+  }
+
+  function onTouchStart(event) {
+    if (typeof procedures !== "undefined") {
+      if (typeof procedures.ontouchstart === "function") {
+        var touches = event.changedTouches;
+        for (var i = 0; i < touches.length; i++) {
+          var mouse = new THREE.Vector2((touches[i].clientX / window.innerWidth) * 2 - 1, -(touches[i].clientY / window.innerHeight) * 2 + 1);
+          raycaster.setFromCamera(mouse, camera);
+          var intersects = raycaster.intersectObjects(Object.values(idToObject));
+          var targetx = null;
+          var targety = null;
+          var targetz = null;
+          var object = null;
+          if (intersects.length > 0) {
+            targetx = intersects[0].point.x;
+            targety = intersects[0].point.y;
+            targetz = intersects[0].point.z;
+            object = intersects[0].object.userData.id;
+          }
+          var touch = (new THREE.Vector3()).set(mouse.x, mouse.y, 0.5).unproject(camera);
+          procedures.ontouchstart(touches[i].clientX, touches[i].clientY, touch, targetx, targety, targetz, object, touches[i].identifier);
+        }
+      }
+    }
+  }
+
+  function onTouchMove(event) {
+    if (typeof procedures !== "undefined") {
+      if (typeof procedures.ontouchstart === "function") {
+        var touches = event.changedTouches;
+        for (var i = 0; i < touches.length; i++) {
+          var mouse = new THREE.Vector2((touches[i].clientX / window.innerWidth) * 2 - 1, -(touches[i].clientY / window.innerHeight) * 2 + 1);
+          raycaster.setFromCamera(mouse, camera);
+          var intersects = raycaster.intersectObjects(Object.values(idToObject));
+          var targetx = null;
+          var targety = null;
+          var targetz = null;
+          var object = null;
+          if (intersects.length > 0) {
+            targetx = intersects[0].point.x;
+            targety = intersects[0].point.y;
+            targetz = intersects[0].point.z;
+            object = intersects[0].object.userData.id;
+          }
+          var touch = (new THREE.Vector3()).set(mouse.x, mouse.y, 0.5).unproject(camera);
+          procedures.ontouchmove(touches[i].clientX, touches[i].clientY, touch, targetx, targety, targetz, object, touches[i].identifier);
+        }
+      }
+    }
+  }
+
+  function onTouchEnd() {
+    if (typeof procedures !== "undefined") {
+      if (typeof procedures.ontouchstart === "function") {
+        var touches = event.changedTouches;
+        for (var i = 0; i < touches.length; i++) {
+          var mouse = new THREE.Vector2((touches[i].clientX / window.innerWidth) * 2 - 1, -(touches[i].clientY / window.innerHeight) * 2 + 1);
+          raycaster.setFromCamera(mouse, camera);
+          var intersects = raycaster.intersectObjects(Object.values(idToObject));
+          var targetx = null;
+          var targety = null;
+          var targetz = null;
+          var object = null;
+          if (intersects.length > 0) {
+            targetx = intersects[0].point.x;
+            targety = intersects[0].point.y;
+            targetz = intersects[0].point.z;
+            object = intersects[0].object.userData.id;
+          }
+          var touch = (new THREE.Vector3()).set(mouse.x, mouse.y, 0.5).unproject(camera);
+          procedures.ontouchend(touches[i].clientX, touches[i].clientY, touch, targetx, targety, targetz, object, touches[i].identifier);
+        }
+      }
+    }
   }
 
   function resizeHUDs() {
@@ -230,19 +346,16 @@ function initVR() {
       body.setActivationState(4);
     }
     physicsWorld.addRigidBody(body);
-    idToPhysicsBody[objectID] = body;
+    idToPhysicsBody[id] = body;
   }
 
   function importScene(sceneJSON) {
     var worldJSON = sceneJSON[0];
     physicsWorld.setGravity(new Ammo.btVector3(worldJSON.gravityx, worldJSON.gravityy, worldJSON.gravityz));
-    dummy = new THREE.Camera();
-    dummy.position.set(worldJSON.camerax, worldJSON.cameray, worldJSON.cameraz);
-    dummy.lookAt(new THREE.Vector3(0, 0, 0));
-    scene.add(dummy);
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10000);
-    camera.position.set(0, 0, 0);
-    dummy.add(camera);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.set(worldJSON.camerax, worldJSON.cameray, worldJSON.cameraz);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    scene.add(camera);
     if (worldJSON.background !== "") {
       var equirectTexture = new THREE.TextureLoader().load(worldJSON.background);
       equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
@@ -264,90 +377,105 @@ function initVR() {
     var objectsJSON = sceneJSON[2];
     for (var i = 0; i < objectsJSON.length; i++) {
       var objectJSON = objectsJSON[i];
-      var objectGeometry;
-      switch (objectJSON.type) {
-        case "BoxBufferGeometry":
-          objectGeometry = new THREE.BoxGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth);
-          break;
-        case "ConeBufferGeometry":
-          objectGeometry = new THREE.ConeGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
-          break;
-        case "CylinderBufferGeometry":
-          objectGeometry = new THREE.CylinderGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
-          break;
-        case "DodecahedronBufferGeometry":
-          objectGeometry = new THREE.DodecahedronGeometry(objectJSON.dodecahedronradius);
-          break;
-        case "IcosahedronBufferGeometry":
-          objectGeometry = new THREE.IcosahedronGeometry(objectJSON.icosahedronradius);
-          break;
-        case "OctahedronBufferGeometry":
-          objectGeometry = new THREE.OctahedronGeometry(objectJSON.octahedronradius);
-          break;
-        case "SphereBufferGeometry":
-          objectGeometry = new THREE.SphereGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
-          break;
-        case "TetrahedronBufferGeometry":
-          objectGeometry = new THREE.TetrahedronGeometry(objectJSON.tetrahedronradius);
-          break;
-        default:
-          return;
-      }
-      processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz);
+      addObjectJSON(createObjectJSON(objectJSON));
     }
     var lightsJSON = sceneJSON[3];
     for (var i = 0; i < lightsJSON.length; i++) {
       var lightJSON = lightsJSON[i];
-      switch (lightJSON.type) {
-        case "AmbientLight":
-          var ambientLight = new THREE.AmbientLight(lightJSON.color, lightJSON.intensity);
-          addLight(ambientLight);
-          break;
-        case "DirectionalLight":
-          var directionalLight = new THREE.DirectionalLight(lightJSON.color, lightJSON.intensity);
-          directionalLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
-          addLight(directionalLight);
-          break;
-        case "HemisphereLight":
-          var hemisphereLight = new THREE.HemisphereLight(lightJSON.skycolor, lightJSON.groundcolor, lightJSON.intensity);
-          hemisphereLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
-          addLight(hemisphereLight);
-          break;
-        case "PointLight":
-          var pointLight = new THREE.PointLight(lightJSON.color, lightJSON.intensity);
-          pointLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
-          addLight(pointLight);
-          break;
-        case "SpotLight":
-          var spotLight = new THREE.SpotLight(lightJSON.color, lightJSON.intensity, lightJSON.distance, lightJSON.angle, lightJSON.penumbra, lightJSON.decay);
-          spotLight.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
-          addLight(spotLight);
-          break;
-        default:
-          return;
-      }
+      addLightJSON(createLightJSON(lightJSON));
     }
   }
 
-  function addLight(light) {
-    if (!light.isAmbientLight && !light.isHemisphereLight) {
-      light.shadow.mapSize.width = 512;
-      light.shadow.mapSize.height = 512;
-      light.shadow.camera.left = -25;
-      light.shadow.camera.right = 25;
-      light.shadow.camera.top = 25;
-      light.shadow.camera.bottom = -25;
-      light.shadow.camera.near = 0.5;
-      light.shadow.camera.far = 100;
-      if (shadows) {
-        light.castShadow = true;
-      }
-    }
-    lightID++;
-    scene.add(light);
-    idToLight[lightID] = light;
-    return lightID;
+  function createObjectJSON(properties) {
+    var id = ++objectID;
+    idToObjectProperties[id] = properties;
+    return id;
   }
+
+  createObject = createObjectJSON;
+
+  function createLightJSON(properties) {
+    var id = ++lightID;
+    idToLightProperties[id] = properties;
+    return id;
+  }
+
+  createLight = createLightJSON;
+
+  function addObjectJSON(id) {
+    if (idToObject.hasOwnProperty(id)) {
+      alert("object " + id + " already in scene");
+      return;
+    }
+    var objectJSON = idToObjectProperties[id];
+    var objectGeometry;
+    switch (objectJSON.type) {
+      case "BoxBufferGeometry":
+        objectGeometry = new THREE.BoxGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth);
+        break;
+      case "ConeBufferGeometry":
+        objectGeometry = new THREE.ConeGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
+        break;
+      case "CylinderBufferGeometry":
+        objectGeometry = new THREE.CylinderGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
+        break;
+      case "DodecahedronBufferGeometry":
+        objectGeometry = new THREE.DodecahedronGeometry(objectJSON.dodecahedronradius);
+        break;
+      case "IcosahedronBufferGeometry":
+        objectGeometry = new THREE.IcosahedronGeometry(objectJSON.icosahedronradius);
+        break;
+      case "OctahedronBufferGeometry":
+        objectGeometry = new THREE.OctahedronGeometry(objectJSON.octahedronradius);
+        break;
+      case "SphereBufferGeometry":
+        objectGeometry = new THREE.SphereGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
+        break;
+      case "TetrahedronBufferGeometry":
+        objectGeometry = new THREE.TetrahedronGeometry(objectJSON.tetrahedronradius);
+        break;
+      default:
+        return;
+    }
+    processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, id);
+  }
+
+  addObject = addObjectJSON;
+
+  function addLightJSON(id) {
+    if (idToLight.hasOwnProperty(id)) {
+      alert("light " + id + " already in scene");
+      return;
+    }
+    var lightJSON = idToLightProperties[id];
+    var light;
+    switch (lightJSON.type) {
+      case "AmbientLight":
+        light = new THREE.AmbientLight(lightJSON.color, lightJSON.intensity);
+        break;
+      case "DirectionalLight":
+        light = new THREE.DirectionalLight(lightJSON.color, lightJSON.intensity);
+        light.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+        break;
+      case "HemisphereLight":
+        light = new THREE.HemisphereLight(lightJSON.skycolor, lightJSON.groundcolor, lightJSON.intensity);
+        light.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+        break;
+      case "PointLight":
+        light = new THREE.PointLight(lightJSON.color, lightJSON.intensity);
+        light.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+        break;
+      case "SpotLight":
+        light = new THREE.SpotLight(lightJSON.color, lightJSON.intensity, lightJSON.distance, lightJSON.angle, lightJSON.penumbra, lightJSON.decay);
+        light.position.set(lightJSON.positionx, lightJSON.positiony, lightJSON.positionz);
+        break;
+      default:
+        return;
+    }
+    processLight(light, id);
+  }
+
+  addLight = addLightJSON;
 
   function createHUD(i, texture, x, y) {
     var hudMaterial = new THREE.SpriteMaterial({map: texture});
@@ -386,8 +514,10 @@ function initVR() {
     if (playSim) {
       var deltaTime = clock.getDelta();
       updatePhysics(deltaTime);
-      if (typeof frameUpdate === "function") {
-        frameUpdate();
+      if (typeof procedures !== "undefined") {
+        if (typeof procedures.onrender === "function") {
+          procedures.onrender();
+        }
       }
     }
     controls.update();
@@ -417,7 +547,7 @@ function initVR() {
     }
   }
 
-  function processObject(objectGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz) {
+  function processObject(objectGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, id) {
     objectGeometry.vertices.forEach(function(v) {
       v.x = v.x * scalex;
       v.y = v.y * scaley;
@@ -442,288 +572,278 @@ function initVR() {
     object.position.set(positionx, positiony, positionz);
     object.rotation.set(rotationx, rotationy, rotationz);
     objectShape.setMargin(margin);
-    objectID++;
-    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, objectID);
-    idToObject[objectID] = object;
-    return objectID;
+    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, id);
+    idToObject[id] = object;
+    object.userData.id = id;
   }
 
-  addBox = function addBox({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x551410, textureURL = "", mass = 10, width = 4, height = 4, depth = 4, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var boxGeometry = new THREE.BoxGeometry(width, height, depth);
-    return processObject(boxGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
+  function processLight(light, id) {
+    if (!light.isAmbientLight && !light.isHemisphereLight) {
+      light.shadow.mapSize.width = 512;
+      light.shadow.mapSize.height = 512;
+      light.shadow.camera.left = -25;
+      light.shadow.camera.right = 25;
+      light.shadow.camera.top = 25;
+      light.shadow.camera.bottom = -25;
+      light.shadow.camera.near = 0.5;
+      light.shadow.camera.far = 100;
+      if (shadows) {
+        light.castShadow = true;
+      }
+    }
+    scene.add(light);
+    idToLight[id] = light;
   }
 
-  addCone = function addCone({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x553200, textureURL = "", mass = 10, radius = 2, height = 4, radialSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var coneGeometry = new THREE.ConeGeometry(radius, height, radialSegments);
-    return processObject(coneGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
+  setObjectProperty = function setObjectProperty(id, property, value) {
+    if (!idToObjectProperties.hasOwnProperty(id)) {
+      alert("invalid id: " + id);
+      return;
+    }
+    var properties = idToObjectProperties[id];
+    properties[property] = value;
+    if (idToObject.hasOwnProperty(id)) {
+      var object = idToObject[id];
+      switch (property) {
+        case "positionx":
+          object.userData.physicsBody.getWorldTransform().setOrigin(new Ammo.btVector3(value, object.position.y, object.position.z));
+          break;
+        case "positiony":
+          object.userData.physicsBody.getWorldTransform().setOrigin(new Ammo.btVector3(object.position.x, value, object.position.z));
+          break;
+        case "positionz":
+          object.userData.physicsBody.getWorldTransform().setOrigin(new Ammo.btVector3(object.position.x, object.position.y, value));
+          break;
+        case "rotationx":
+          var newQuaternion = new Ammo.btQuaternion();
+          newQuaternion.setEulerZYX(object.rotation.z, object.rotation.y, value);
+          object.userData.physicsBody.getWorldTransform().setRotation(newQuaternion);
+          break;
+        case "rotationy":
+          var newQuaternion = new Ammo.btQuaternion();
+          newQuaternion.setEulerZYX(object.rotation.z, value, object.rotation.x);
+          object.userData.physicsBody.getWorldTransform().setRotation(newQuaternion);
+          break;
+        case "rotationz":
+          var newQuaternion = new Ammo.btQuaternion();
+          newQuaternion.setEulerZYX(value, object.rotation.y, object.rotation.x);
+          object.userData.physicsBody.getWorldTransform().setRotation(newQuaternion);
+          break;
+        case "color":
+          object.material.color = new THREE.Color(value);
+          break;
+        default:
+          removeObject(id);
+          addObjectJSON(properties, id);
+      }
+    }
   }
 
-  addCylinder = function addCylinder({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x554400, textureURL = "", mass = 10, radiusTop = 2, radiusBottom = 2, height = 4, radialSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var cylinderGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
-    return processObject(cylinderGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
+  getObjectProperty = function getObjectProperty(id, property) {
+    if (!idToObjectProperties.hasOwnProperty(id)) {
+      alert("invalid id: " + id);
+      return;
+    }
+    var properties = idToObjectProperties[id];
+    if (idToObject.hasOwnProperty(id)) {
+      var object = idToObject[id];
+      var physicsBody = idToPhysicsBody[id];
+    } else {
+      return properties[property];
+    }
+    switch (property) {
+      case "positionx":
+        return object.position.x;
+      case "positiony":
+        return object.position.y;
+      case "positionz":
+        return object.position.z;
+      case "rotationx":
+        return object.rotation.x;
+      case "rotationy":
+        return object.rotation.y;
+      case "rotationz":
+        return object.rotation.z;
+      case "linearvelocityx":
+        return physicsBody.getLinearVelocity().x();
+      case "linearvelocityy":
+        return physicsBody.getLinearVelocity().y();
+      case "linearvelocityz":
+        return physicsBody.getLinearVelocity().z();
+      case "angularvelocityx":
+        return physicsBody.getAngularVelocity().x();
+      case "angularvelocityy":
+        return physicsBody.getAngularVelocity().y();
+      case "angularvelocityz":
+        return physicsBody.getAngularVelocity().z();
+      default:
+        return properties[property];
+    }
   }
 
-  addDodecahedron = function addDodecahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x194821, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var dodecahedronGeometry = new THREE.DodecahedronGeometry(radius);
-    return processObject(dodecahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
+  setLightProperty = function setLightProperty(id, property, value) {
+    if (!idToLightProperties.hasOwnProperty(id)) {
+      alert("invalid id: " + id);
+      return;
+    }
+    var properties = idToLightProperties[id];
+    properties[property] = value;
+    if (idToLight.hasOwnProperty(id)) {
+      var light = idToLight[id];
+      switch (property) {
+        case "positionx":
+          light.position.x = value;
+          break;
+        case "positiony":
+          light.position.y = value;
+          break;
+        case "positionz":
+          light.position.z = value;
+          break;
+        case "color":
+          light.color = new THREE.Color(value);
+          break;
+        case "skycolor":
+          light.skyColor = new THREE.Color(value);
+          break;
+        case "groundcolor":
+          light.groundColor = new THREE.Color(value);
+          break;
+        default:
+          light[property] = value;
+      }
+    }
   }
 
-  addIcosahedron = function addIcosahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x1e4353, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var icosahedronGeometry = new THREE.IcosahedronGeometry(radius);
-    return processObject(icosahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
-  }
-
-  addOctahedron = function addOctahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x002955, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var octahedronGeometry = new THREE.OctahedronGeometry(radius);
-    return processObject(octahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
-  }
-
-  addSphere = function addSphere({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x1d1d47, textureURL = "", mass = 10, radius = 2, widthSegments = 16, heightSegments = 16, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var sphereGeometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
-    return processObject(sphereGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
-  }
-
-  addTetrahedron = function addTetrahedron({positionx = 0, positiony = 0, positionz = 0, rotationx = 0, rotationy = 0, rotationz = 0, scalex = 1, scaley = 1, scalez = 1, color = 0x550f1c, textureURL = "", mass = 10, radius = 2, linearvelocityx = 0, linearvelocityy = 0, linearvelocityz = 0, angularvelocityx = 0, angularvelocityy = 0, angularvelocityz = 0} = {}) {
-    var tetrahedronGeometry = new THREE.TetrahedronGeometry(radius);
-    return processObject(tetrahedronGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz);
-  }
-
-  addAmbientLight = function addAmbientLight({color = 0xffffff, intensity = 0.5} = {}) {
-    var ambientLight = new THREE.AmbientLight(color, intensity);
-    return addLight(ambientLight);
-  }
-
-  addDirectionalLight = function addDirectionalLight({positionx = 0, positiony = 0, positionz = 0, color = 0x00ffff, intensity = 1} = {}) {
-    var directionalLight = new THREE.DirectionalLight(color, intensity);
-    directionalLight.position.set(positionx, positiony, positionz);
-    return addLight(directionalLight);
-  }
-
-  addHemisphereLight = function addHemisphereLight({skycolor = 0xff0000, groundcolor = 0x0000ff, intensity = 1} = {}) {
-    var hemisphereLight = new THREE.HemisphereLight(skycolor, groundcolor, intensity);
-    return addLight(hemisphereLight);
-  }
-
-  addPointLight = function addPointLight({positionx = 10, positiony = 10, positionz = 0, color = 0xff0000, intensity = 1} = {}) {
-    var pointLight = new THREE.PointLight(color, intensity);
-    pointLight.position.set(positionx, positiony, positionz);
-    return addLight(pointLight);
-  }
-
-  addSpotLight = function addSpotLight({positionx = 0, positiony = 10, positionz = 10, color = 0x00ff00, intensity = 10, distance = 40, angle = 0.5236, penumbra = 0.2, decay = 1} = {}) {
-    var spotLight = new THREE.SpotLight(color, intensity, distance, angle, penumbra, decay);
-    spotLight.position.set(positionx, positiony, positionz);
-    return addLight(spotLight);
+  getLightProperty = function getLightProperty(id, property) {
+    if (!idToLightProperties.hasOwnProperty(id)) {
+      alert("invalid id: " + id);
+      return;
+    }
+    return idToLightProperties[id][property];
   }
 
   removeObject = function removeObject(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      rigidBodies.splice(rigidBodies.indexOf(idToObject[id]), 1);
-      scene.remove(idToObject[id]);
-      physicsWorld.removeRigidBody(idToPhysicsBody[id]);
-      delete idToObject[id];
-      delete idToPhysicsBody[id];
-    } else {
-      return "invalid id";
+    if (!idToObject.hasOwnProperty(id)) {
+      alert("object " + id + " not in scene");
+      return;
     }
+    var properties = idToObjectProperties[id];
+    var object = idToObject[id];
+    var physicsBody = idToPhysicsBody[id];
+    properties.positionx = object.position.x;
+    properties.positiony = object.position.y;
+    properties.positionz = object.position.z;
+    properties.rotationx = object.rotation.x;
+    properties.rotationy = object.rotation.y;
+    properties.rotationz = object.rotation.z;
+    properties.linearvelocityx = physicsBody.getLinearVelocity().x();
+    properties.linearvelocityy = physicsBody.getLinearVelocity().y();
+    properties.linearvelocityz = physicsBody.getLinearVelocity().z();
+    properties.angularvelocityx = physicsBody.getAngularVelocity().x();
+    properties.angularvelocityy = physicsBody.getAngularVelocity().y();
+    properties.angularvelocityy = physicsBody.getAngularVelocity().z();
+    rigidBodies.splice(rigidBodies.indexOf(object), 1);
+    scene.remove(object);
+    physicsWorld.removeRigidBody(physicsBody);
+    delete idToObject[id];
+    delete idToPhysicsBody[id];
   }
 
   removeLight = function removeLight(id) {
-    if (idToLight.hasOwnProperty(id)) {
-      scene.remove(idToLight[id]);
-      delete idToLight[id];
-    } else {
-      return "invalid id";
+    if (!idToLight.hasOwnProperty(id)) {
+      alert("light " + id + " not in scene");
+      return;
+    }
+    scene.remove(idToLight[id]);
+    delete idToLight[id];
+  }
+
+  setCameraProperty = function setCameraProperty(property, value) {
+    switch (property) {
+      case "positionx":
+        camera.position.x = value;
+        break;
+      case "positiony":
+        camera.position.y = value;
+        break;
+      case "positionz":
+        camera.position.z = value;
+        break;
+      case "targetx":
+        controls.target.x = value;
+        break;
+      case "targety":
+        controls.target.y = value;
+        break;
+      case "targetz":
+        controls.target.z = value;
+        break;
+      case "fov":
+        camera.fov = value;
+        camera.updateProjectionMatrix();
+        break;
+      default:
+        controls.enabled = value;
     }
   }
 
-  getObjectCount = function getObjectCount() {
-    return rigidBodies.length;
-  }
-
-  getObjectPositionX = function getObjectPositionX(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].position.x;
-    } else {
-      return "invalid id";
+  getCameraProperty = function getCameraProperty(property) {
+    switch (property) {
+      case "positionx":
+        return camera.position.x;
+      case "positiony":
+        return camera.position.y;
+      case "positionz":
+        return camera.position.z;
+      case "targetx":
+        return controls.target.x;
+      case "targety":
+        return controls.target.y;
+      case "targetz":
+        return controls.target.z;
+      case "fov":
+        return camera.fov;
+      default:
+        return controls.enabled;
     }
   }
 
-  getObjectPositionY = function getObjectPositionY(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].position.y;
-    } else {
-      return "invalid id";
+  getObjects = function getObjects() {
+    return Object.keys(idToObject);
+  }
+
+  getLights = function getLights() {
+    return Object.keys(idToLight);
+  }
+
+  setWorldProperty = function setWorldProperty(property, value) {
+    switch (property) {
+      case "backgroundcolor":
+        renderer.setClearColor(color);
+        break;
+      case "gravityx":
+        physicsWorld.setGravity(new Ammo.btVector3(value, physicsWorld.getGravity().y(), physicsWorld.getGravity().z()));
+        break;
+      case "gravityy":
+        physicsWorld.setGravity(new Ammo.btVector3(physicsWorld.getGravity().x(), value, physicsWorld.getGravity().z()));
+        break;
+      default:
+        physicsWorld.setGravity(new Ammo.btVector3(physicsWorld.getGravity().x(), physicsWorld.getGravity().y(), value));
     }
   }
 
-  getObjectPositionZ = function getObjectPositionZ(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].position.z;
-    } else {
-      return "invalid id";
+  getWorldProperty = function getWorldProperty(property) {
+    switch (property) {
+      case "backgroundcolor":
+        return renderer.getClearColor().getHex();
+      case "gravityx":
+        return physicsWorld.getGravity().x();
+      case "gravityy":
+        return physicsWorld.getGravity().y();
+      default:
+        return physicsWorld.getGravity().z();
     }
-  }
-
-  getObjectRotationX = function getObjectRotationX(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].rotation.x;
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectRotationY = function getObjectRotationY(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].rotation.y;
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectRotationZ = function getObjectRotationZ(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].rotation.z;
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectScaleX = function getObjectScaleX(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].scale.x;
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectScaleY = function getObjectScaleY(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].scale.y;
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectScaleZ = function getObjectScaleZ(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].scale.z;
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectColor = function getObjectColor(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToObject[id].material.color.getHex();
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectLinearVelocityX = function getObjectLinearVelocityX(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToPhysicsBody[id].getLinearVelocity().x();
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectLinearVelocityY = function getObjectLinearVelocityY(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToPhysicsBody[id].getLinearVelocity().y();
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectLinearVelocityZ = function getObjectLinearVelocityZ(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToPhysicsBody[id].getLinearVelocity().z();
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectAngularVelocityX = function getObjectAngularVelocityX(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToPhysicsBody[id].getAngularVelocity().x();
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectAngularVelocityY = function getObjectAngularVelocityY(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToPhysicsBody[id].getAngularVelocity().y();
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getObjectAngularVelocityZ = function getObjectAngularVelocityZ(id) {
-    if (idToObject.hasOwnProperty(id)) {
-      return idToPhysicsBody[id].getAngularVelocity().z();
-    } else {
-      return "invalid id";
-    }
-  }
-
-  getCameraX = function getCameraX() {
-    return dummy.position.x;
-  }
-
-  getCameraY = function getCameraY() {
-    return dummy.position.y;
-  }
-
-  getCameraZ = function getCameraZ() {
-    return dummy.position.z;
-  }
-
-  getHUDText = function getHUDText(i) {
-    return hudTexts[i];
-  }
-
-  setObjectPosition = function setObjectPosition(id, x, y, z) {
-    if (idToObject.hasOwnProperty(id)) {
-      idToObject[id].position.set(x, y, z);
-      rigidBodies.indexOf(idToObject[id]).position.set(x, y, z);
-    } else {
-      return "invalid id";
-    }
-  }
-
-  setObjectColor = function setObjectColor(id, hex) {
-    if (idToObject.hasOwnProperty(id)) {
-      idToObject[id].material.color = new THREE.Color(hex);
-    } else {
-      return "invalid id";
-    }
-  }
-
-  setObjectLinearVelocity = function setObjectLinearVelocity(id, x, y, z) {
-    if (idToObject.hasOwnProperty(id)) {
-      idToPhysicsBody[id].setLinearVelocity(new Ammo.btVector3(x, y, z));
-    } else {
-      return "invalid id";
-    }
-  }
-
-  setObjectAngularVelocity = function setObjectAngularVelocity(id, x, y, z) {
-    if (idToObject.hasOwnProperty(id)) {
-      idToPhysicsBody[id].setAngularVelocity(new Ammo.btVector3(x, y, z));
-    } else {
-      return "invalid id";
-    }
-  }
-
-  setGravity = function setGravity(x, y, z) {
-    physicsWorld.setGravity(new Ammo.btVector3(x, y, z));
-  }
-
-  setCamera = function setCamera(x, y, z) {
-    dummy.position.set(x, y, z);
   }
 
   setBackground = function setBackground(background) {
@@ -743,63 +863,37 @@ function initVR() {
     hudTexture.needsUpdate = true;
     createHUD(i, hudTexture, 2 * hudPositions[i][0] - 300, 350 - 2 * hudPositions[i][1]);
   }
+
+  getHUDText = function getHUDText(i) {
+    return hudTexts[i];
+  }
 }
 
-var addBox;
-var addCone;
-var addCylinder;
-var addDodecahedron;
-var addIcosahedron;
-var addOctahedron;
-var addSphere;
-var addTetrahedron;
-var removeObject;
+var createObject;
+var createLight;
 
-var addAmbientLight;
-var addDirectionalLight;
-var addHemisphereLight;
-var addPointLight;
-var addSpotLight;
+var addObject;
+var addLight;
+
+var setObjectProperty;
+var getObjectProperty;
+
+var setLightProperty;
+var getLightProperty;
+
+var removeObject;
 var removeLight;
 
-var getObjectCount;
+var setCameraProperty;
+var getCameraProperty;
 
-var getObjectPositionX;
-var getObjectPositionY;
-var getObjectPositionZ;
-var getObjectRotationX;
-var getObjectRotationY;
-var getObjectRotationZ;
-var getObjectScaleX;
-var getObjectScaleY;
-var getObjectScaleZ;
-var getObjectColor;
+var getObjects;
+var getLights;
 
-var getObjectLinearVelocityX;
-var getObjectLinearVelocityY;
-var getObjectLinearVelocityZ;
-var getObjectAngularVelocityX;
-var getObjectAngularVelocityY;
-var getObjectAngularVelocityZ;
+var setWorldProperty;
+var getWorldProperty;
 
-var getCameraX;
-var getCameraY;
-var getCameraZ;
-
-var getHUDText;
-
-var setObjectPosition;
-var setObjectColor;
-
-var setObjectLinearVelocity;
-var setObjectAngularVelocity;
-
-var setGravity;
-var setCamera;
 var setBackground;
 
 var setHUDText;
-
-var canvas;
-
-var frameUpdate;
+var getHUDText;

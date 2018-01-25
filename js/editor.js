@@ -602,7 +602,7 @@ function initEditor() {
     var vrButton = document.getElementById("vr");
     vrButton.addEventListener("click", function() {
       sceneJSONString = generateSceneJSONString();
-      var win = window.open("/vr.html", "_blank");
+      var win = window.open("vr.html", "_blank");
     });
     var deleteButton = document.getElementById("delete");
     deleteButton.addEventListener("click", function() {
