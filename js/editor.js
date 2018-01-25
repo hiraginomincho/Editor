@@ -86,6 +86,9 @@ function initEditor() {
   var angularVelocityYInput = document.getElementById("angular-velocity-y");
   var angularVelocityZInput = document.getElementById("angular-velocity-z");
 
+  var frictionInput = document.getElementById("friction");
+  var restitutionInput = document.getElementById("restitution");
+
   var collisionButton = document.getElementById("collision");
 
   var lightPositionXInput;
@@ -436,6 +439,8 @@ function initEditor() {
         angularVelocityXInput.value = CLICKED.angularVelocityX.toFixed(3);
         angularVelocityYInput.value = CLICKED.angularVelocityY.toFixed(3);
         angularVelocityZInput.value = CLICKED.angularVelocityZ.toFixed(3);
+        frictionInput.value = CLICKED.friction.toFixed(3);
+        restitutionInput.value = CLICKED.restitution.toFixed(3);
         updateCollision(CLICKED.collision);
       } else if (!CLICKED.light.isAmbientLight) {
         lightPositionXInput.value = CLICKED.light.position.x.toFixed(3);
@@ -755,6 +760,8 @@ function initEditor() {
       object.angularVelocityX = objectJSON.angularvelocityx;
       object.angularVelocityY = objectJSON.angularvelocityy;
       object.angularVelocityZ = objectJSON.angularvelocityz;
+      object.friction = objectJSON.friction;
+      object.restitution = objectJSON.restitution;
       object.collision = objectJSON.collision;
       object.name = objectJSON.name;
       addObjectToScene(object, false);
@@ -907,6 +914,8 @@ function initEditor() {
       objectJSON.angularvelocityx = object.angularVelocityX;
       objectJSON.angularvelocityy = object.angularVelocityY;
       objectJSON.angularvelocityz = object.angularVelocityZ;
+      objectJSON.friction = object.friction;
+      objectJSON.restitution = object.restitution;
       objectJSON.collision = object.collision;
       objectsJSON.push(objectJSON);
     }
@@ -1178,6 +1187,8 @@ function initEditor() {
     object.angularVelocityX = 0;
     object.angularVelocityY = 0;
     object.angularVelocityZ = 0;
+    object.friction = 0.5;
+    object.restitution = 0;
     object.collision = true;
   }
 
@@ -1287,7 +1298,7 @@ function initEditor() {
 
   function initParameterControls() {
     backgroundColorInput.addEventListener("input", function() {
-      //renderer.setClearColor(new THREE.Color(backgroundColorInput.value)); <--crash?
+      //renderer.setClearColor(new THREE.Color(backgroundColorInput.value));// <--crash?
       //console.log(backgroundColorInput.value);
     });
     addParameterListeners(backgroundTextureInput, "backgroundtexture");
@@ -1323,6 +1334,8 @@ function initEditor() {
     addParameterListeners(angularVelocityXInput, "angularvelocityx");
     addParameterListeners(angularVelocityYInput, "angularvelocityy");
     addParameterListeners(angularVelocityZInput, "angularvelocityz");
+    addParameterListeners(frictionInput, "friction");
+    addParameterListeners(restitutionInput, "restitution");
     collisionButton.addEventListener("click", function() {
       CLICKED.collision = !CLICKED.collision;
       updateCollision(CLICKED.collision);
@@ -1349,7 +1362,7 @@ function initEditor() {
     }
     if (clickedValue === "coneradialsegments" || clickedValue === "cylinderradialsegments" || clickedValue === "spherewidthsegments" || clickedValue === "sphereheightsegments") {
       input.value = Math.abs(input.valueAsNumber.toFixed());
-    } else if (clickedValue === "mass" || clickedValue === "intensity" || clickedValue === "distance" || clickedValue === "angle" || clickedValue === "penumbra" || clickedValue === "decay") {
+    } else if (clickedValue === "mass" || clickedValue === "friction" || clickedValue === "restitution" || clickedValue === "intensity" || clickedValue === "distance" || clickedValue === "angle" || clickedValue === "penumbra" || clickedValue === "decay") {
       input.value = Math.abs(input.valueAsNumber).toFixed(3);
     } else if (clickedValue !== "objecttexture" && clickedValue !== "backgroundtexture") {
       input.value = input.valueAsNumber.toFixed(3);
@@ -1406,6 +1419,12 @@ function initEditor() {
         break;
       case "mass":
         CLICKED.mass = input.valueAsNumber;
+        break;
+      case "friction":
+        CLICKED.friction = input.valueAsNumber;
+        break;
+      case "restitution":
+        CLICKED.restitution = input.valueAsNumber;
         break;
       case "boxwidth":
         updateGeometry(new THREE.BoxBufferGeometry(input.valueAsNumber, CLICKED.geometry.parameters.height, CLICKED.geometry.parameters.depth));

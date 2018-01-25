@@ -326,7 +326,7 @@ function initVR() {
     ].join("\n");
   }
 
-  function createRigidBody(object, physicsShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, collision, id) {
+  function createRigidBody(object, physicsShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id) {
     var transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(object.position.x, object.position.y, object.position.z));
@@ -335,6 +335,8 @@ function initVR() {
     var localInertia = new Ammo.btVector3(0, 0, 0);
     physicsShape.calculateLocalInertia(mass, localInertia);
     var rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, physicsShape, localInertia);
+    rbInfo.set_m_friction(friction);
+    rbInfo.set_m_restitution(restitution);
     var body = new Ammo.btRigidBody(rbInfo);
     body.setLinearVelocity(new Ammo.btVector3(linearvelocityx, linearvelocityy, linearvelocityz));
     body.setAngularVelocity(new Ammo.btVector3(angularvelocityx, angularvelocityy, angularvelocityz));
@@ -448,7 +450,7 @@ function initVR() {
       default:
         return;
     }
-    processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.collision, id);
+    processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.friction, objectJSON.restitution, objectJSON.collision, id);
   }
 
   addObject = addObjectJSON;
@@ -558,7 +560,7 @@ function initVR() {
     }
   }
 
-  function processObject(objectGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, collision, id) {
+  function processObject(objectGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id) {
     objectGeometry.vertices.forEach(function(v) {
       v.x = v.x * scalex;
       v.y = v.y * scaley;
@@ -583,7 +585,7 @@ function initVR() {
     object.position.set(positionx, positiony, positionz);
     object.rotation.set(rotationx, rotationy, rotationz);
     objectShape.setMargin(margin);
-    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, collision, id);
+    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id);
     idToObject[id] = object;
     object.userData.id = id;
   }
