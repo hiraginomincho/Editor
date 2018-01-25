@@ -184,7 +184,6 @@ function initVR() {
           controls = new THREE.VRControls(camera);
           vrDisplay.requestAnimationFrame(render);
         } else {
-          controls = new THREE.OrbitControls(camera, renderer.domElement);
           requestAnimationFrame(render);
         }
       });
@@ -327,7 +326,7 @@ function initVR() {
     ].join("\n");
   }
 
-  function createRigidBody(object, physicsShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, id) {
+  function createRigidBody(object, physicsShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, collision, id) {
     var transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(object.position.x, object.position.y, object.position.z));
@@ -345,25 +344,37 @@ function initVR() {
       rigidBodies.push(object);
       body.setActivationState(4);
     }
-    physicsWorld.addRigidBody(body);
+    if (collision) {
+      physicsWorld.addRigidBody(body);
+    } else {
+      physicsWorld.addRigidBody(body, 0, 0);
+    }
     idToPhysicsBody[id] = body;
   }
 
   function importScene(sceneJSON) {
     var worldJSON = sceneJSON[0];
-    physicsWorld.setGravity(new Ammo.btVector3(worldJSON.gravityx, worldJSON.gravityy, worldJSON.gravityz));
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.set(worldJSON.camerax, worldJSON.cameray, worldJSON.cameraz);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-    scene.add(camera);
-    if (worldJSON.background !== "") {
-      var equirectTexture = new THREE.TextureLoader().load(worldJSON.background);
+    renderer.setClearColor(worldJSON.backgroundcolor);
+    if (worldJSON.backgroundtexture !== "") {
+      var equirectTexture = new THREE.TextureLoader().load(worldJSON.backgroundtexture);
       equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
       equirectMaterial.uniforms["tEquirect"].value = equirectTexture;
       hasBackground = false;
     } else {
       hasBackground = true;
     }
+    physicsWorld.setGravity(new Ammo.btVector3(worldJSON.gravityx, worldJSON.gravityy, worldJSON.gravityz));
+    camera = new THREE.PerspectiveCamera(worldJSON.camerafov, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.set(worldJSON.camerax, worldJSON.cameray, worldJSON.cameraz);
+    camera.lookAt(new THREE.Vector3(worldJSON.targetx, worldJSON.targety, worldJSON.targetz));
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.25;
+    controls.enableKeys = false;
+    controls.target.x = worldJSON.targetx;
+    controls.target.y = worldJSON.targety;
+    controls.target.z = worldJSON.targetz;
+    scene.add(camera);
     shadows = worldJSON.shadows;
     renderer.shadowMap.enabled = shadows;
     var labelsJSON = sceneJSON[1];
@@ -437,7 +448,7 @@ function initVR() {
       default:
         return;
     }
-    processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, id);
+    processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.collision, id);
   }
 
   addObject = addObjectJSON;
@@ -547,7 +558,7 @@ function initVR() {
     }
   }
 
-  function processObject(objectGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, id) {
+  function processObject(objectGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, collision, id) {
     objectGeometry.vertices.forEach(function(v) {
       v.x = v.x * scalex;
       v.y = v.y * scaley;
@@ -572,7 +583,7 @@ function initVR() {
     object.position.set(positionx, positiony, positionz);
     object.rotation.set(rotationx, rotationy, rotationz);
     objectShape.setMargin(margin);
-    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, id);
+    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, collision, id);
     idToObject[id] = object;
     object.userData.id = id;
   }
@@ -634,7 +645,7 @@ function initVR() {
           break;
         default:
           removeObject(id);
-          addObjectJSON(properties, id);
+          addObjectJSON(id);
       }
     }
   }

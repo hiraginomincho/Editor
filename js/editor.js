@@ -28,6 +28,9 @@ function initEditor() {
 
   var editorDiv = document.getElementById("editor");
 
+  var backgroundColorInput = document.getElementById("background-color");
+  var backgroundTextureInput = document.getElementById("background-texture");
+
   var gravityXInput = document.getElementById("gravity-x");
   var gravityYInput = document.getElementById("gravity-y");
   var gravityZInput = document.getElementById("gravity-z");
@@ -36,7 +39,11 @@ function initEditor() {
   var cameraYInput = document.getElementById("camera-y");
   var cameraZInput = document.getElementById("camera-z");
 
-  var backgroundInput = document.getElementById("background");
+  var targetXInput = document.getElementById("target-x");
+  var targetYInput = document.getElementById("target-y");
+  var targetZInput = document.getElementById("target-z");
+
+  var cameraFOVInput = document.getElementById("camera-fov");
 
   var shadowsButton = document.getElementById("shadows");
 
@@ -67,7 +74,7 @@ function initEditor() {
   var scaleZInput = document.getElementById("scale-z");
 
   var objectColorInput = document.getElementById("object-color");
-  var textureInput = document.getElementById("texture");
+  var objectTextureInput = document.getElementById("object-texture");
 
   var massInput = document.getElementById("mass");
 
@@ -78,6 +85,8 @@ function initEditor() {
   var angularVelocityXInput = document.getElementById("angular-velocity-x");
   var angularVelocityYInput = document.getElementById("angular-velocity-y");
   var angularVelocityZInput = document.getElementById("angular-velocity-z");
+
+  var collisionButton = document.getElementById("collision");
 
   var lightPositionXInput;
   var lightPositionYInput;
@@ -419,7 +428,7 @@ function initEditor() {
         scaleYInput.value = CLICKED.scale.y.toFixed(3);
         scaleZInput.value = CLICKED.scale.z.toFixed(3);
         objectColorInput.value = "#" + CLICKED.material.color.getHexString();
-        textureInput.value = CLICKED.textureURL;
+        objectTextureInput.value = CLICKED.textureURL;
         massInput.value = CLICKED.mass.toFixed(3);
         linearVelocityXInput.value = CLICKED.linearVelocityX.toFixed(3);
         linearVelocityYInput.value = CLICKED.linearVelocityY.toFixed(3);
@@ -427,6 +436,7 @@ function initEditor() {
         angularVelocityXInput.value = CLICKED.angularVelocityX.toFixed(3);
         angularVelocityYInput.value = CLICKED.angularVelocityY.toFixed(3);
         angularVelocityZInput.value = CLICKED.angularVelocityZ.toFixed(3);
+        updateCollision(CLICKED.collision);
       } else if (!CLICKED.light.isAmbientLight) {
         lightPositionXInput.value = CLICKED.light.position.x.toFixed(3);
         lightPositionYInput.value = CLICKED.light.position.y.toFixed(3);
@@ -665,15 +675,20 @@ function initEditor() {
   function importScene(sceneJSONString) {
     var sceneJSON = JSON.parse(sceneJSONString);
     var worldJSON = sceneJSON[0];
+    backgroundColorInput.value = "#" + new THREE.Color(worldJSON.backgroundcolor).getHexString();
+    backgroundTextureInput.value = worldJSON.backgroundtexture;
     gravityXInput.value = worldJSON.gravityx.toFixed(3);
     gravityYInput.value = worldJSON.gravityy.toFixed(3);
     gravityZInput.value = worldJSON.gravityz.toFixed(3);
     cameraXInput.value = worldJSON.camerax.toFixed(3);
     cameraYInput.value = worldJSON.cameray.toFixed(3);
     cameraZInput.value = worldJSON.cameraz.toFixed(3);
-    backgroundInput.value = worldJSON.background;
-    if (worldJSON.background !== "") {
-      var equirectTexture = new THREE.TextureLoader().load(worldJSON.background);
+    targetXInput.value = worldJSON.targetx.toFixed(3);
+    targetYInput.value = worldJSON.targety.toFixed(3);
+    targetZInput.value = worldJSON.targetz.toFixed(3);
+    cameraFOVInput.value = worldJSON.camerafov.toFixed(3);
+    if (worldJSON.backgroundtexture !== "") {
+      var equirectTexture = new THREE.TextureLoader().load(worldJSON.backgroundtexture);
       equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
       equirectMaterial.uniforms["tEquirect"].value = equirectTexture;
       renderer.autoClear = false;
@@ -740,6 +755,7 @@ function initEditor() {
       object.angularVelocityX = objectJSON.angularvelocityx;
       object.angularVelocityY = objectJSON.angularvelocityy;
       object.angularVelocityZ = objectJSON.angularvelocityz;
+      object.collision = objectJSON.collision;
       object.name = objectJSON.name;
       addObjectToScene(object, false);
     }
@@ -807,13 +823,18 @@ function initEditor() {
   function generateSceneJSONString() {
     var sceneJSON = [];
     var worldJSON = {};
+    worldJSON.backgroundcolor = new THREE.Color(backgroundColorInput.value);
+    worldJSON.backgroundtexture = backgroundTextureInput.value;
     worldJSON.gravityx = gravityXInput.valueAsNumber;
     worldJSON.gravityy = gravityYInput.valueAsNumber;
     worldJSON.gravityz = gravityZInput.valueAsNumber;
     worldJSON.camerax = cameraXInput.valueAsNumber;
     worldJSON.cameray = cameraYInput.valueAsNumber;
     worldJSON.cameraz = cameraZInput.valueAsNumber;
-    worldJSON.background = backgroundInput.value;
+    worldJSON.targetx = targetXInput.valueAsNumber;
+    worldJSON.targety = targetYInput.valueAsNumber;
+    worldJSON.targetz = targetZInput.valueAsNumber;
+    worldJSON.camerafov = cameraFOVInput.valueAsNumber;
     worldJSON.shadows = shadows;
     sceneJSON.push(worldJSON);
     var labelsJSON = [];
@@ -886,6 +907,7 @@ function initEditor() {
       objectJSON.angularvelocityx = object.angularVelocityX;
       objectJSON.angularvelocityy = object.angularVelocityY;
       objectJSON.angularvelocityz = object.angularVelocityZ;
+      objectJSON.collision = object.collision;
       objectsJSON.push(objectJSON);
     }
     sceneJSON.push(objectsJSON);
@@ -935,7 +957,8 @@ function initEditor() {
   }
 
   function exportScene() {
-    window.open("data:application/json," + encodeURIComponent(generateSceneJSONString()), "_blank");
+    //window.open("data:application/json," + encodeURIComponent(generateSceneJSONString()), "_blank");
+    console.log(generateSceneJSONString());
   }
 
   function initLeftButtons() {
@@ -1099,6 +1122,18 @@ function initEditor() {
     }
   }
 
+  function updateCollision(collide) {
+    if (collide) {
+      collisionButton.classList.remove("wide-inactive");
+      collisionButton.classList.add("wide-active");
+      collisionButton.innerHTML = "Collision Enabled";
+    } else {
+      collisionButton.classList.remove("wide-active");
+      collisionButton.classList.add("wide-inactive");
+      collisionButton.innerHTML = "Collision Disabled";
+    }
+  }
+
   function addLabel(left, top) {
     var labelBox = document.createElement("div");
     var labelBoxX;
@@ -1143,6 +1178,7 @@ function initEditor() {
     object.angularVelocityX = 0;
     object.angularVelocityY = 0;
     object.angularVelocityZ = 0;
+    object.collision = true;
   }
 
   function addToObjectList(object) {
@@ -1250,13 +1286,21 @@ function initEditor() {
   }
 
   function initParameterControls() {
+    backgroundColorInput.addEventListener("input", function() {
+      //renderer.setClearColor(new THREE.Color(backgroundColorInput.value)); <--crash?
+      //console.log(backgroundColorInput.value);
+    });
+    addParameterListeners(backgroundTextureInput, "backgroundtexture");
     addParameterListeners(gravityXInput, "world");
     addParameterListeners(gravityYInput, "world");
     addParameterListeners(gravityZInput, "world");
     addParameterListeners(cameraXInput, "world");
     addParameterListeners(cameraYInput, "world");
     addParameterListeners(cameraZInput, "world");
-    addParameterListeners(backgroundInput, "background");
+    addParameterListeners(targetXInput, "world");
+    addParameterListeners(targetYInput, "world");
+    addParameterListeners(targetZInput, "world");
+    addParameterListeners(cameraFOVInput, "world");
     addParameterListeners(objectPositionXInput, "objectpositionx");
     addParameterListeners(objectPositionYInput, "objectpositiony");
     addParameterListeners(objectPositionZInput, "objectpositionz");
@@ -1271,7 +1315,7 @@ function initEditor() {
         CLICKED.material.color = new THREE.Color(objectColorInput.value);
       }
     });
-    addParameterListeners(textureInput, "texture");
+    addParameterListeners(objectTextureInput, "objecttexture");
     addParameterListeners(massInput, "mass");
     addParameterListeners(linearVelocityXInput, "linearvelocityx");
     addParameterListeners(linearVelocityYInput, "linearvelocityy");
@@ -1279,6 +1323,10 @@ function initEditor() {
     addParameterListeners(angularVelocityXInput, "angularvelocityx");
     addParameterListeners(angularVelocityYInput, "angularvelocityy");
     addParameterListeners(angularVelocityZInput, "angularvelocityz");
+    collisionButton.addEventListener("click", function() {
+      CLICKED.collision = !CLICKED.collision;
+      updateCollision(CLICKED.collision);
+    });
   }
 
   function addParameterListeners(input, clickedValue) {
@@ -1293,21 +1341,21 @@ function initEditor() {
   }
 
   function updateParameters(input, clickedValue) {
-    if (!CLICKED && clickedValue !== "world" && clickedValue !== "background") {
+    if (!CLICKED && clickedValue !== "backgroundtexture" && clickedValue !== "world") {
       return;
     }
-    if (input.value === "" && clickedValue !== "texture" && clickedValue != "background") {
+    if (input.value === "" && clickedValue !== "objecttexture" && clickedValue != "backgroundtexture") {
       input.value = (0).toFixed(3);
     }
     if (clickedValue === "coneradialsegments" || clickedValue === "cylinderradialsegments" || clickedValue === "spherewidthsegments" || clickedValue === "sphereheightsegments") {
       input.value = Math.abs(input.valueAsNumber.toFixed());
     } else if (clickedValue === "mass" || clickedValue === "intensity" || clickedValue === "distance" || clickedValue === "angle" || clickedValue === "penumbra" || clickedValue === "decay") {
       input.value = Math.abs(input.valueAsNumber).toFixed(3);
-    } else if (clickedValue !== "texture" && clickedValue !== "background") {
+    } else if (clickedValue !== "objecttexture" && clickedValue !== "backgroundtexture") {
       input.value = input.valueAsNumber.toFixed(3);
     }
     switch (clickedValue) {
-      case "background":
+      case "backgroundtexture":
         if (input.value === "") {
           equirectMaterial.uniforms["tEquirect"].value = null;
           renderer.autoClear = true;
@@ -1345,7 +1393,7 @@ function initEditor() {
       case "scalez":
         CLICKED.scale.z = input.valueAsNumber;
         break;
-      case "texture":
+      case "objecttexture":
         var color = CLICKED.material.color.getHex();
         CLICKED.textureURL = input.value;
         CLICKED.material.dispose();
