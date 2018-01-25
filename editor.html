@@ -12,28 +12,28 @@
       <div class="row" id="container-row">
         <div class="col-2" id="left-panel">
           <div class="wide-button wide-inactive" id="box">
-           Box
+            Box
           </div>
           <div class="wide-button wide-inactive" id="cone">
-           Cone
+            Cone
           </div>
           <div class="wide-button wide-inactive" id="cylinder">
-           Cylinder
+            Cylinder
           </div>
           <div class="wide-button wide-inactive" id="dodecahedron">
-           Dodecahedron
+            Dodecahedron
           </div>
           <div class="wide-button wide-inactive" id="icosahedron">
-           Icosahedron
+            Icosahedron
           </div>
           <div class="wide-button wide-inactive" id="octahedron">
-           Octahedron
+            Octahedron
           </div>
           <div class="wide-button wide-inactive" id="sphere">
-           Sphere
+            Sphere
           </div>
           <div class="wide-button wide-inactive" id="tetrahedron">
-           Tetrahedron
+            Tetrahedron
           </div>
           <hr>
           <div class="wide-button wide-inactive" id="ambient">
@@ -53,44 +53,50 @@
           </div>
           <hr>
           <div class="parameter-label-large">
-           World
+            World
           </div>
           <div class="parameter-label">
-           Gravity
-          </div>
-          <div class="row parameter-row">
-           <div class="col-4 parameter-item">
-             <input class="input-text parameter-box" id="gravity-x" type="number" value="0.000" step="0.001">
-           </div>
-           <div class="col-4 parameter-item">
-             <input class="input-text parameter-box" id="gravity-y" type="number" value="-98.000" step="0.001">
-           </div>
-           <div class="col-4 parameter-item">
-             <input class="input-text parameter-box" id="gravity-z" type="number" value="0.000" step="0.001">
-           </div>
-          </div>
-          <div class="parameter-label">
-           Camera
-          </div>
-          <div class="row parameter-row">
-           <div class="col-4 parameter-item">
-             <input class="input-text parameter-box" id="camera-x" type="number" value="20.000" step="0.001">
-           </div>
-           <div class="col-4 parameter-item">
-             <input class="input-text parameter-box" id="camera-y" type="number" value="20.000" step="0.001">
-           </div>
-           <div class="col-4 parameter-item">
-             <input class="input-text parameter-box" id="camera-z" type="number" value="10.000" step="0.001">
-           </div>
-          </div>
-          <div class="parameter-label">
-           Background
+            Color
           </div>
           <div class="parameter-row">
-           <input class="input-text parameter-box" id="background" type="text">
+            <input class="color" id="background-color" type="color">
+          </div>
+          <div class="parameter-label">
+            Gravity
+          </div>
+          <div class="row parameter-row">
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="gravity-x" type="number" value="0.000" step="0.001">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="gravity-y" type="number" value="-98.000" step="0.001">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="gravity-z" type="number" value="0.000" step="0.001">
+            </div>
+          </div>
+          <div class="parameter-label">
+            Camera
+          </div>
+          <div class="row parameter-row">
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="camera-x" type="number" value="20.000" step="0.001">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="camera-y" type="number" value="20.000" step="0.001">
+            </div>
+            <div class="col-4 parameter-item">
+              <input class="input-text parameter-box" id="camera-z" type="number" value="10.000" step="0.001">
+            </div>
+          </div>
+          <div class="parameter-label">
+            Background
+          </div>
+          <div class="parameter-row">
+            <input class="input-text parameter-box" id="background" type="text">
           </div>
           <div class="wide-button wide-inactive" id="labels">
-           Labels
+            Labels
           </div>
           <div class="wide-button wide-inactive" id="shadows">
             Shadows Disabled
@@ -100,36 +106,36 @@
           <div id="editor">
           </div>
           <div id="controls-left">
-           <div class="control-button control-button-left control-inactive" id="vr">
-             VR
-           </div>
-           <div class="control-button control-button-left control-active" id="translate">
-             Translate
-           </div>
-           <div class="control-button control-button-left control-inactive" id="rotate">
-             Rotate
-           </div>
-           <div class="control-button control-button-left control-inactive" id="scale">
-             Scale
-           </div>
-           <div class="control-button control-button-left control-inactive" id="duplicate">
-             Duplicate
-           </div>
-           <div class="control-button control-button-left control-inactive" id="import">
-             Import
-           </div>
-           <input type="file" id="import-json">
-           <div class="control-button control-button-left control-inactive" id="export">
-             Export
-           </div>
+            <div class="control-button control-button-left control-inactive" id="vr">
+              VR
+            </div>
+            <div class="control-button control-button-left control-active" id="translate">
+              Translate
+            </div>
+            <div class="control-button control-button-left control-inactive" id="rotate">
+              Rotate
+            </div>
+            <div class="control-button control-button-left control-inactive" id="scale">
+              Scale
+            </div>
+            <div class="control-button control-button-left control-inactive" id="duplicate">
+              Duplicate
+            </div>
+            <div class="control-button control-button-left control-inactive" id="import">
+              Import
+            </div>
+            <input type="file" id="import-json">
+            <div class="control-button control-button-left control-inactive" id="export">
+              Export
+            </div>
           </div>
           <div id="controls-right">
-           <div class="control-button control-button-right control-inactive" id="delete">
-             Delete
-           </div>
-           <div class="control-button control-button-right control-inactive" id="clear">
-             Clear
-           </div>
+            <div class="control-button control-button-right control-inactive" id="delete">
+              Delete
+            </div>
+            <div class="control-button control-button-right control-inactive" id="clear">
+              Clear
+            </div>
           </div>
         </div>
         <div class="col-2" id="right-panel">
