@@ -450,7 +450,7 @@ function initVR() {
       default:
         return;
     }
-    processObject(objectGeometry, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.friction, objectJSON.restitution, objectJSON.collision, id);
+    processObject(objectGeometry, objectJSON.name, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.friction, objectJSON.restitution, objectJSON.collision, id);
   }
 
   addObject = addObjectJSON;
@@ -560,7 +560,7 @@ function initVR() {
     }
   }
 
-  function processObject(objectGeometry, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id) {
+  function processObject(objectGeometry, name, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id) {
     objectGeometry.vertices.forEach(function(v) {
       v.x = v.x * scalex;
       v.y = v.y * scaley;
@@ -582,6 +582,7 @@ function initVR() {
     for (var i = 0; i < objectGeometry.vertices.length; i++) {
       objectShape.addPoint(new Ammo.btVector3(objectGeometry.vertices[i].x, objectGeometry.vertices[i].y, objectGeometry.vertices[i].z));
     }
+    object.name = name;
     object.position.set(positionx, positiony, positionz);
     object.rotation.set(rotationx, rotationy, rotationz);
     objectShape.setMargin(margin);
@@ -608,6 +609,37 @@ function initVR() {
     idToLight[id] = light;
   }
 
+  function typeToString(type) {
+    switch (type) {
+      case "BoxBufferGeometry":
+        return "box";
+      case "ConeBufferGeometry":
+        return "cone";
+      case "CylinderBufferGeometry":
+        return "cylinder";
+      case "DodecahedronBufferGeometry":
+        return "dodecahedron";
+      case "IcosahedronBufferGeometry":
+        return "icosahedron";
+      case "OctahedronBufferGeometry":
+        return "octahedron";
+      case "SphereBufferGeometry":
+        return "sphere";
+      case "TetrahedronBufferGeometry":
+        return "tetrahedron";
+      case "AmbientLight":
+        return "ambient";
+      case "DirectionalLight":
+        return "directional";
+      case "HemisphereLight":
+        return "hemisphere";
+      case "PointLight":
+        return "point";
+      default:
+        return "spot";
+    }
+  }
+
   setObjectProperty = function setObjectProperty(id, property, value) {
     if (!idToObjectProperties.hasOwnProperty(id)) {
       alert("invalid id: " + id);
@@ -618,6 +650,9 @@ function initVR() {
     if (idToObject.hasOwnProperty(id)) {
       var object = idToObject[id];
       switch (property) {
+        case "name":
+          object.name = value;
+          break;
         case "positionx":
           object.userData.physicsBody.getWorldTransform().setOrigin(new Ammo.btVector3(value, object.position.y, object.position.z));
           break;
@@ -658,6 +693,9 @@ function initVR() {
       return;
     }
     var properties = idToObjectProperties[id];
+    if (property === "type") {
+      return typeToString(properties[property]);
+    }
     if (idToObject.hasOwnProperty(id)) {
       var object = idToObject[id];
       var physicsBody = idToPhysicsBody[id];
@@ -665,6 +703,8 @@ function initVR() {
       return properties[property];
     }
     switch (property) {
+      case "name":
+        return object.name;
       case "positionx":
         return object.position.x;
       case "positiony":
@@ -704,6 +744,9 @@ function initVR() {
     if (idToLight.hasOwnProperty(id)) {
       var light = idToLight[id];
       switch (property) {
+        case "name":
+          light.name = value;
+          break;
         case "positionx":
           light.position.x = value;
           break;
@@ -732,6 +775,9 @@ function initVR() {
     if (!idToLightProperties.hasOwnProperty(id)) {
       alert("invalid id: " + id);
       return;
+    }
+    if (property === "type") {
+      return typeToString(idToLightProperties[id][property]);
     }
     return idToLightProperties[id][property];
   }
@@ -841,8 +887,21 @@ function initVR() {
       case "gravityy":
         physicsWorld.setGravity(new Ammo.btVector3(physicsWorld.getGravity().x(), value, physicsWorld.getGravity().z()));
         break;
-      default:
+      case "gravityz":
         physicsWorld.setGravity(new Ammo.btVector3(physicsWorld.getGravity().x(), physicsWorld.getGravity().y(), value));
+        break;
+      default:
+        shadows = value;
+        renderer.shadowMap.enabled = value;
+        for (var key in idToObject) {
+          idToObject[key].castShadow = value;
+          idToObject[key].receiveShadow = value;
+        }
+        for (var key in idToLight) {
+          if (!idToLight[key].isAmbientLight && !idToLight[key].isHemisphereLight) {
+            idToLight[key].castShadow = value;
+          }
+        }
     }
   }
 
@@ -854,8 +913,10 @@ function initVR() {
         return physicsWorld.getGravity().x();
       case "gravityy":
         return physicsWorld.getGravity().y();
-      default:
+      case "gravityz":
         return physicsWorld.getGravity().z();
+      default:
+        return shadows;
     }
   }
 
