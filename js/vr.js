@@ -223,7 +223,7 @@ function initVR() {
 
   function onTouchMove(event) {
     if (typeof procedures !== "undefined") {
-      if (typeof procedures.ontouchstart === "function") {
+      if (typeof procedures.ontouchmove === "function") {
         var touches = event.changedTouches;
         for (var i = 0; i < touches.length; i++) {
           var mouse = new THREE.Vector2((touches[i].clientX / window.innerWidth) * 2 - 1, -(touches[i].clientY / window.innerHeight) * 2 + 1);
@@ -248,7 +248,7 @@ function initVR() {
 
   function onTouchEnd() {
     if (typeof procedures !== "undefined") {
-      if (typeof procedures.ontouchstart === "function") {
+      if (typeof procedures.ontouchend === "function") {
         var touches = event.changedTouches;
         for (var i = 0; i < touches.length; i++) {
           var mouse = new THREE.Vector2((touches[i].clientX / window.innerWidth) * 2 - 1, -(touches[i].clientY / window.innerHeight) * 2 + 1);
