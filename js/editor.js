@@ -74,6 +74,7 @@ function initEditor() {
   var scaleZInput = document.getElementById("scale-z");
 
   var objectColorInput = document.getElementById("object-color");
+  var opacityInput = document.getElementById("opacity");
   var objectTextureInput = document.getElementById("object-texture");
 
   var massInput = document.getElementById("mass");
@@ -431,6 +432,7 @@ function initEditor() {
         scaleYInput.value = CLICKED.scale.y.toFixed(3);
         scaleZInput.value = CLICKED.scale.z.toFixed(3);
         objectColorInput.value = "#" + CLICKED.material.color.getHexString();
+        opacityInput.value = CLICKED.material.opacity.toFixed(3);
         objectTextureInput.value = CLICKED.textureURL;
         massInput.value = CLICKED.mass.toFixed(3);
         linearVelocityXInput.value = CLICKED.linearVelocityX.toFixed(3);
@@ -752,6 +754,10 @@ function initEditor() {
       object.rotation.set(objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz);
       object.scale.set(objectJSON.scalex, objectJSON.scaley, objectJSON.scalez);
       object.material.color = new THREE.Color(objectJSON.color);
+      object.material.opacity = objectJSON.opacity;
+      if (objectJSON.opacity < 1) {
+        object.material.transparent = true;
+      }
       object.textureURL = objectJSON.textureURL;
       object.mass = objectJSON.mass;
       object.linearVelocityX = objectJSON.linearvelocityx;
@@ -869,6 +875,7 @@ function initEditor() {
       objectJSON.scaley = object.scale.y;
       objectJSON.scalez = object.scale.z;
       objectJSON.color = object.material.color;
+      objectJSON.opacity = object.material.opacity;
       objectJSON.textureURL = object.textureURL;
       objectJSON.mass = object.mass;
       switch (object.geometry.type) {
@@ -1179,6 +1186,7 @@ function initEditor() {
   }
 
   function setOtherParameters(object) {
+    object.opacity = 1;
     object.textureURL = "";
     object.mass = 10;
     object.linearVelocityX = 0;
@@ -1326,6 +1334,7 @@ function initEditor() {
         CLICKED.material.color = new THREE.Color(objectColorInput.value);
       }
     });
+    addParameterListeners(opacityInput, "opacity");
     addParameterListeners(objectTextureInput, "objecttexture");
     addParameterListeners(massInput, "mass");
     addParameterListeners(linearVelocityXInput, "linearvelocityx");
@@ -1362,7 +1371,7 @@ function initEditor() {
     }
     if (clickedValue === "coneradialsegments" || clickedValue === "cylinderradialsegments" || clickedValue === "spherewidthsegments" || clickedValue === "sphereheightsegments") {
       input.value = Math.abs(input.valueAsNumber.toFixed());
-    } else if (clickedValue === "mass" || clickedValue === "friction" || clickedValue === "restitution" || clickedValue === "intensity" || clickedValue === "distance" || clickedValue === "angle" || clickedValue === "penumbra" || clickedValue === "decay") {
+    } else if (clickedValue === "opacity" || clickedValue === "mass" || clickedValue === "friction" || clickedValue === "restitution" || clickedValue === "intensity" || clickedValue === "distance" || clickedValue === "angle" || clickedValue === "penumbra" || clickedValue === "decay") {
       input.value = Math.abs(input.valueAsNumber).toFixed(3);
     } else if (clickedValue !== "objecttexture" && clickedValue !== "backgroundtexture") {
       input.value = input.valueAsNumber.toFixed(3);
@@ -1406,8 +1415,17 @@ function initEditor() {
       case "scalez":
         CLICKED.scale.z = input.valueAsNumber;
         break;
+      case "opacity":
+        CLICKED.material.opacity = input.valueAsNumber;
+        if (CLICKED.material.opacity < 1) {
+          CLICKED.material.transparent = true;
+        } else {
+          CLICKED.material.transparent = false;
+        }
+        break;
       case "objecttexture":
         var color = CLICKED.material.color.getHex();
+        var opacity = CLICKED.material.opacity;
         CLICKED.textureURL = input.value;
         CLICKED.material.dispose();
         if (input.value === "") {
@@ -1415,6 +1433,12 @@ function initEditor() {
         } else {
           var texture = new THREE.TextureLoader().load(input.value);
           CLICKED.material = new THREE.MeshPhongMaterial({color: color, map: texture, flatShading: true, side: THREE.DoubleSide});
+        }
+        CLICKED.material.opacity = opacity;
+        if (CLICKED.material.opacity < 1) {
+          CLICKED.material.transparent = true;
+        } else {
+          CLICKED.material.transparent = false;
         }
         break;
       case "mass":
