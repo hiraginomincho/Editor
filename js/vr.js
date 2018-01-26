@@ -246,7 +246,7 @@ function initVR() {
     }
   }
 
-  function onTouchEnd() {
+  function onTouchEnd(event) {
     if (typeof procedures !== "undefined") {
       if (typeof procedures.ontouchend === "function") {
         var touches = event.changedTouches;
