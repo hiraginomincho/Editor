@@ -1,5 +1,6 @@
-body {
-  overflow: hidden;
+body > canvas {
+  position: absolute;
+  top: 0;
 }
 
 .control-button {
