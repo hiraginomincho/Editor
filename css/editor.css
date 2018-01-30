@@ -226,7 +226,6 @@ div > canvas {
   outline: none;
   padding: 0.25rem;
   border: 1px solid #32383f;
-  text-transform: uppercase;
   letter-spacing: 1px;
   transition: background-color 0.2s;
 }

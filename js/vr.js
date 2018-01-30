@@ -7,6 +7,8 @@ if (window.opener) {
   window.alert("This page should only be accessed through the VR Editor.");
 }
 
+var idToObject;
+
 function initVR() {
   var polyfill = new WebVRPolyfill();
   var fullscreenButton = document.getElementById("vr-fullscreen");
@@ -95,7 +97,7 @@ function initVR() {
   var softBodyHelpers = new Ammo.btSoftBodyHelpers();
 
   var idToObjectProperties = {};
-  var idToObject = {};
+  idToObject = {};
   var idToPhysicsBody = {};
   var objectID = -1;
 
@@ -551,6 +553,7 @@ function initVR() {
       default:
         return;
     }
+    light.name = lightJSON.name;
     processLight(light, id);
   }
 
@@ -887,7 +890,11 @@ function initVR() {
     }
     var properties = idToObjectProperties[id];
     if (property === "type") {
-      return typeToString(properties[property]);
+      if (properties.soft) {
+        return "soft " + typeToString(properties[property]);
+      } else {
+        return "rigid " + typeToString(properties[property]);
+      }
     }
     if (idToObject.hasOwnProperty(id) && !properties.soft) {
       var object = idToObject[id];
@@ -1063,12 +1070,36 @@ function initVR() {
     }
   }
 
-  getObjects = function getObjects() {
-    return Object.keys(idToObject);
+  getAllObjects = function getAllObjects() {
+    return Object.keys(idToObject).map(Number);
   }
 
-  getLights = function getLights() {
-    return Object.keys(idToLight);
+  getObjectsByName = function getObjectsByName(name) {
+    return Object.keys(idToObject).map(Number).filter(id => idToObject[id].name === name);
+  }
+
+  getAllLights = function getAllLights() {
+    return Object.keys(idToLight).map(Number);
+  }
+
+  getLightsByName = function getLightsByName(name) {
+    return Object.keys(idToLight).map(Number).filter(id => idToLight[id].name === name);
+  }
+
+  isObjectInScene = function isObjectInScene(id) {
+    if (!idToObjectProperties.hasOwnProperty(id)) {
+      alert("invalid id: " + id);
+      return;
+    }
+    return idToObject.hasOwnProperty(id);
+  }
+
+  isLightInScene = function isLightInScene(id) {
+    if (!idToLightProperties.hasOwnProperty(id)) {
+      alert("invalid id: " + id);
+      return;
+    }
+    return idToLight.hasOwnProperty(id);
   }
 
   setWorldProperty = function setWorldProperty(property, value) {
@@ -1159,8 +1190,14 @@ var removeLight;
 var setCameraProperty;
 var getCameraProperty;
 
-var getObjects;
-var getLights;
+var getAllObjects;
+var getObjectsByName;
+
+var getAllLights;
+var getLightsByName;
+
+var isObjectInScene;
+var isLightInScene;
 
 var setWorldProperty;
 var getWorldProperty;
