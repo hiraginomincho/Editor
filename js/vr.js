@@ -7,8 +7,6 @@ if (window.opener) {
   window.alert("This page should only be accessed through the VR Editor.");
 }
 
-var idToObject;
-
 function initVR() {
   var polyfill = new WebVRPolyfill();
   var fullscreenButton = document.getElementById("vr-fullscreen");
@@ -97,7 +95,7 @@ function initVR() {
   var softBodyHelpers = new Ammo.btSoftBodyHelpers();
 
   var idToObjectProperties = {};
-  idToObject = {};
+  var idToObject = {};
   var idToPhysicsBody = {};
   var objectID = -1;
 
