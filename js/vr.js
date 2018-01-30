@@ -82,6 +82,7 @@ function initVR() {
   var physicsWorld;
 
   var rigidBodies = [];
+  var softBodies = [];
 
   var huds = [];
   var hudTexts = [];
@@ -91,6 +92,7 @@ function initVR() {
 
   var clock = new THREE.Clock();
   var transformAux1 = new Ammo.btTransform();
+  var softBodyHelpers = new Ammo.btSoftBodyHelpers();
 
   var idToObjectProperties = {};
   var idToObject = {};
@@ -131,11 +133,12 @@ function initVR() {
     vrEffect.setSize(window.innerWidth, window.innerHeight);
     vrEffect.autoSubmitFrame = false;
 
-    var collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+    var collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
     var dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
     var broadphase = new Ammo.btDbvtBroadphase();
     var solver = new Ammo.btSequentialImpulseConstraintSolver();
-    physicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+    var softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
 
     var equirectShader = THREE.ShaderLib["equirect"];
 
@@ -148,6 +151,7 @@ function initVR() {
 
     raycaster = new THREE.Raycaster();
 
+    /*
     Reticulum.init(camera, {
         proximity: false,
         clickevents: true,
@@ -177,6 +181,7 @@ function initVR() {
             clickCancelFuse: false
         }
     });
+    */
 
     navigator.getVRDisplays().then(function(vrDisplays) {
         if (false && vrDisplays.length) {
@@ -354,6 +359,35 @@ function initVR() {
     idToPhysicsBody[id] = body;
   }
 
+  function createSoftBody(bufGeometry, object, mass, pressure, friction, collision, id) {
+    var volumeSoftBody = softBodyHelpers.CreateFromTriMesh(physicsWorld.getWorldInfo(), bufGeometry.ammoVertices, bufGeometry.ammoIndices, bufGeometry.ammoIndices.length / 3, true);
+    var sbConfig = volumeSoftBody.get_m_cfg();
+    sbConfig.set_viterations(40);
+    sbConfig.set_piterations(40);
+    if (collision) {
+      sbConfig.set_collisions(0x11);
+    } else {
+      sbConfig.set_collisions(0);
+    }
+    sbConfig.set_kDF(friction);
+    sbConfig.set_kDP(0.01);
+    sbConfig.set_kPR(pressure);
+    volumeSoftBody.get_m_materials().at(0).set_m_kLST(0.9);
+    volumeSoftBody.get_m_materials().at(0).set_m_kAST(0.9);
+    if (mass == 0) {
+      alert("mass of soft body " + object.name + " cannot be 0; changing to 10");
+      mass = 10;
+    }
+    volumeSoftBody.setTotalMass(mass, false);
+    Ammo.castObject(volumeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin);
+    scene.add(object);
+    physicsWorld.addSoftBody(volumeSoftBody, 1, -1);
+    object.userData.physicsBody = volumeSoftBody;
+    softBodies.push(object);
+    volumeSoftBody.setActivationState(4);
+    idToPhysicsBody[id] = volumeSoftBody;
+  }
+
   function importScene(sceneJSON) {
     var worldJSON = sceneJSON[0];
     renderer.setClearColor(worldJSON.backgroundcolor);
@@ -366,6 +400,7 @@ function initVR() {
       hasBackground = true;
     }
     physicsWorld.setGravity(new Ammo.btVector3(worldJSON.gravityx, worldJSON.gravityy, worldJSON.gravityz));
+    physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(worldJSON.gravityx, worldJSON.gravityy, worldJSON.gravityz));
     camera = new THREE.PerspectiveCamera(worldJSON.camerafov, window.innerWidth / window.innerHeight, 1, 10000);
     camera.position.set(worldJSON.camerax, worldJSON.cameray, worldJSON.cameraz);
     camera.lookAt(new THREE.Vector3(worldJSON.targetx, worldJSON.targety, worldJSON.targetz));
@@ -422,35 +457,66 @@ function initVR() {
     }
     var objectJSON = idToObjectProperties[id];
     var objectGeometry;
-    switch (objectJSON.type) {
-      case "BoxBufferGeometry":
-        objectGeometry = new THREE.BoxGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth);
-        break;
-      case "ConeBufferGeometry":
-        objectGeometry = new THREE.ConeGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
-        break;
-      case "CylinderBufferGeometry":
-        objectGeometry = new THREE.CylinderGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
-        break;
-      case "DodecahedronBufferGeometry":
-        objectGeometry = new THREE.DodecahedronGeometry(objectJSON.dodecahedronradius);
-        break;
-      case "IcosahedronBufferGeometry":
-        objectGeometry = new THREE.IcosahedronGeometry(objectJSON.icosahedronradius);
-        break;
-      case "OctahedronBufferGeometry":
-        objectGeometry = new THREE.OctahedronGeometry(objectJSON.octahedronradius);
-        break;
-      case "SphereBufferGeometry":
-        objectGeometry = new THREE.SphereGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
-        break;
-      case "TetrahedronBufferGeometry":
-        objectGeometry = new THREE.TetrahedronGeometry(objectJSON.tetrahedronradius);
-        break;
-      default:
-        return;
+    if (objectJSON.soft) {
+      switch (objectJSON.type) {
+        case "BoxBufferGeometry":
+          objectGeometry = new THREE.BoxBufferGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth, objectJSON.boxwidthsegments, objectJSON.boxheightsegments, objectJSON.boxdepthsegments);
+          break;
+        case "ConeBufferGeometry":
+          objectGeometry = new THREE.ConeBufferGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
+          break;
+        case "CylinderBufferGeometry":
+          objectGeometry = new THREE.CylinderBufferGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
+          break;
+        case "DodecahedronBufferGeometry":
+          objectGeometry = new THREE.DodecahedronBufferGeometry(objectJSON.dodecahedronradius);
+          break;
+        case "IcosahedronBufferGeometry":
+          objectGeometry = new THREE.IcosahedronBufferGeometry(objectJSON.icosahedronradius);
+          break;
+        case "OctahedronBufferGeometry":
+          objectGeometry = new THREE.OctahedronBufferGeometry(objectJSON.octahedronradius);
+          break;
+        case "SphereBufferGeometry":
+          objectGeometry = new THREE.SphereBufferGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
+          break;
+        case "TetrahedronBufferGeometry":
+          objectGeometry = new THREE.TetrahedronBufferGeometry(objectJSON.tetrahedronradius);
+          break;
+        default:
+          return;
+      }
+    } else {
+      switch (objectJSON.type) {
+        case "BoxBufferGeometry":
+          objectGeometry = new THREE.BoxGeometry(objectJSON.boxwidth, objectJSON.boxheight, objectJSON.boxdepth, objectJSON.boxwidthsegments, objectJSON.boxheightsegments, objectJSON.boxdepthsegments);
+          break;
+        case "ConeBufferGeometry":
+          objectGeometry = new THREE.ConeGeometry(objectJSON.coneradius, objectJSON.coneheight, objectJSON.coneradialsegments);
+          break;
+        case "CylinderBufferGeometry":
+          objectGeometry = new THREE.CylinderGeometry(objectJSON.cylinderradiustop, objectJSON.cylinderradiusbottom, objectJSON.cylinderheight, objectJSON.cylinderradialsegments);
+          break;
+        case "DodecahedronBufferGeometry":
+          objectGeometry = new THREE.DodecahedronGeometry(objectJSON.dodecahedronradius);
+          break;
+        case "IcosahedronBufferGeometry":
+          objectGeometry = new THREE.IcosahedronGeometry(objectJSON.icosahedronradius);
+          break;
+        case "OctahedronBufferGeometry":
+          objectGeometry = new THREE.OctahedronGeometry(objectJSON.octahedronradius);
+          break;
+        case "SphereBufferGeometry":
+          objectGeometry = new THREE.SphereGeometry(objectJSON.sphereradius, objectJSON.spherewidthsegments, objectJSON.sphereheightsegments);
+          break;
+        case "TetrahedronBufferGeometry":
+          objectGeometry = new THREE.TetrahedronGeometry(objectJSON.tetrahedronradius);
+          break;
+        default:
+          return;
+      }
     }
-    processObject(objectGeometry, objectJSON.name, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.opacity, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.friction, objectJSON.restitution, objectJSON.collision, id);
+    processObject(objectGeometry, objectJSON.name, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.opacity, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.pressure, objectJSON.friction, objectJSON.restitution, objectJSON.flatshading, objectJSON.wireframe, objectJSON.collision, objectJSON.soft, id);
   }
 
   addObject = addObjectJSON;
@@ -534,7 +600,7 @@ function initVR() {
       }
     }
     controls.update();
-    Reticulum.update();
+    //Reticulum.update();
     renderer.clear();
     cameraCube.rotation.copy(camera.rotation);
     vrEffect.render(sceneCube, cameraCube);
@@ -548,6 +614,41 @@ function initVR() {
 
   function updatePhysics(deltaTime) {
     physicsWorld.stepSimulation(deltaTime, 10);
+    for (var i = 0; i < softBodies.length; i++) {
+      var object = softBodies[i];
+      var geometry = object.geometry;
+      var softBody = object.userData.physicsBody;
+      var volumePositions = geometry.attributes.position.array;
+      var volumeNormals = geometry.attributes.normal.array;
+      var association = geometry.ammoIndexAssociation;
+      var numVerts = association.length;
+      var nodes = softBody.get_m_nodes();
+      for (var j = 0; j < numVerts; j++) {
+        var node = nodes.at(j);
+        var nodePos = node.get_m_x();
+        var x = nodePos.x();
+        var y = nodePos.y();
+        var z = nodePos.z();
+        var nodeNormal = node.get_m_n();
+        var nx = nodeNormal.x();
+        var ny = nodeNormal.y();
+        var nz = nodeNormal.z();
+        var assocVertex = association[j];
+        for (var k = 0, kl = assocVertex.length; k < kl; k++) {
+          var indexVertex = assocVertex[k];
+          volumePositions[indexVertex] = x;
+          volumeNormals[indexVertex] = nx;
+          indexVertex++;
+          volumePositions[indexVertex] = y;
+          volumeNormals[indexVertex] = ny;
+          indexVertex++;
+          volumePositions[indexVertex] = z;
+          volumeNormals[indexVertex] = nz;
+        }
+      }
+      geometry.attributes.position.needsUpdate = true;
+      geometry.attributes.normal.needsUpdate = true;
+    }
     for (var i = 0; i < rigidBodies.length; i++) {
       var ms = rigidBodies[i].userData.physicsBody.getMotionState();
       if (ms) {
@@ -560,37 +661,56 @@ function initVR() {
     }
   }
 
-  function processObject(objectGeometry, name, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, opacity, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id) {
-    objectGeometry.vertices.forEach(function(v) {
-      v.x = v.x * scalex;
-      v.y = v.y * scaley;
-      v.z = v.z * scalez;
-    });
+  function processObject(objectGeometry, name, positionx, positiony, positionz, rotationx, rotationy, rotationz, scalex, scaley, scalez, color, opacity, textureURL, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, pressure, friction, restitution, flatshading, wireframe, collision, soft, id) {
+    if (!soft) {
+      objectGeometry.vertices.forEach(function(v) {
+        v.x = v.x * scalex;
+        v.y = v.y * scaley;
+        v.z = v.z * scalez;
+      });
+    }
     var objectMaterial;
     if (textureURL === "") {
-      objectMaterial = new THREE.MeshPhongMaterial({color: color, flatShading: true, side: THREE.DoubleSide});
+      objectMaterial = new THREE.MeshPhongMaterial({color: color, flatShading: flatshading, side: THREE.DoubleSide, wireframe: wireframe});
     } else {
       var texture = new THREE.TextureLoader().load(textureURL);
-      objectMaterial = new THREE.MeshPhongMaterial({color: color, map: texture, flatShading: true, side: THREE.DoubleSide});
+      objectMaterial = new THREE.MeshPhongMaterial({color: color, map: texture, flatShading: flatshading, side: THREE.DoubleSide, wireframe: wireframe});
     }
     objectMaterial.opacity = opacity;
     if (opacity < 1) {
       objectMaterial.transparent = true;
     }
-    var object = new THREE.Mesh(objectGeometry, objectMaterial);
-    if (shadows) {
-      object.castShadow = true;
-      object.receiveShadow = true;
+    if (soft) {
+      objectGeometry.rotateX(rotationx);
+      objectGeometry.rotateY(rotationy);
+      objectGeometry.rotateZ(rotationz);
+      objectGeometry.scale(scalex, scaley, scalez);
+      objectGeometry.translate(positionx, positiony, positionz);
+      processGeometry(objectGeometry);
+      var object = new THREE.Mesh(objectGeometry, objectMaterial);
+      if (shadows) {
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+      object.frustumCulled = false;
+      object.name = name;
+      createSoftBody(objectGeometry, object, mass, pressure, friction, collision, id);
+    } else {
+      var object = new THREE.Mesh(objectGeometry, objectMaterial);
+      if (shadows) {
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+      object.name = name;
+      object.position.set(positionx, positiony, positionz);
+      object.rotation.set(rotationx, rotationy, rotationz);
+      var objectShape = new Ammo.btConvexHullShape();
+      for (var i = 0; i < objectGeometry.vertices.length; i++) {
+        objectShape.addPoint(new Ammo.btVector3(objectGeometry.vertices[i].x, objectGeometry.vertices[i].y, objectGeometry.vertices[i].z));
+      }
+      objectShape.setMargin(margin);
+      createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id);
     }
-    var objectShape = new Ammo.btConvexHullShape();
-    for (var i = 0; i < objectGeometry.vertices.length; i++) {
-      objectShape.addPoint(new Ammo.btVector3(objectGeometry.vertices[i].x, objectGeometry.vertices[i].y, objectGeometry.vertices[i].z));
-    }
-    object.name = name;
-    object.position.set(positionx, positiony, positionz);
-    object.rotation.set(rotationx, rotationy, rotationz);
-    objectShape.setMargin(margin);
-    createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id);
     idToObject[id] = object;
     object.userData.id = id;
   }
@@ -644,6 +764,65 @@ function initVR() {
     }
   }
 
+  function processGeometry(bufGeometry) {
+    var geometry = new THREE.Geometry().fromBufferGeometry(bufGeometry);
+    var vertsDiff = geometry.mergeVertices();
+    var indexedBufferGeom = createIndexedBufferGeometryFromGeometry(geometry);
+    mapIndices(bufGeometry, indexedBufferGeom);
+  }
+
+  function createIndexedBufferGeometryFromGeometry(geometry) {
+    var numVertices = geometry.vertices.length;
+    var numFaces = geometry.faces.length;
+    var bufferGeom = new THREE.BufferGeometry();
+    var vertices = new Float32Array(numVertices * 3);
+    var indices = new (numFaces * 3 > 65535 ? Uint32Array : Uint16Array)(numFaces * 3);
+    for (var i = 0; i < numVertices; i++) {
+      var p = geometry.vertices[i];
+      var i3 = i * 3;
+      vertices[i3] = p.x;
+      vertices[i3 + 1] = p.y;
+      vertices[i3 + 2] = p.z;
+    }
+    for (var i = 0; i < numFaces; i++) {
+      var f = geometry.faces[i];
+      var i3 = i * 3;
+      indices[i3] = f.a;
+      indices[i3 + 1] = f.b;
+      indices[i3 + 2] = f.c;
+    }
+    bufferGeom.setIndex(new THREE.BufferAttribute(indices, 1));
+    bufferGeom.addAttribute("position", new THREE.BufferAttribute(vertices, 3));
+    return bufferGeom;
+  }
+
+  function isEqual(x1, y1, z1, x2, y2, z2) {
+    var delta = 0.000001;
+    return Math.abs(x2 - x1) < delta && Math.abs(y2 - y1) < delta && Math.abs(z2 - z1) < delta;
+  }
+
+  function mapIndices(bufGeometry, indexedBufferGeom) {
+    var vertices = bufGeometry.attributes.position.array;
+    var idxVertices = indexedBufferGeom.attributes.position.array;
+    var indices = indexedBufferGeom.index.array;
+    var numIdxVertices = idxVertices.length / 3;
+    var numVertices = vertices.length / 3;
+    bufGeometry.ammoVertices = idxVertices;
+    bufGeometry.ammoIndices = indices;
+    bufGeometry.ammoIndexAssociation = [];
+    for (var i = 0; i < numIdxVertices; i++) {
+      var association = [];
+      bufGeometry.ammoIndexAssociation.push(association);
+      var i3 = i * 3;
+      for (var j = 0; j < numVertices; j++) {
+        var j3 = j * 3;
+        if (isEqual(idxVertices[i3], idxVertices[i3 + 1], idxVertices[i3 + 2], vertices[j3], vertices[j3 + 1], vertices[j3 + 2])) {
+          association.push(j3);
+        }
+      }
+    }
+  }
+
   setObjectProperty = function setObjectProperty(id, property, value) {
     if (!idToObjectProperties.hasOwnProperty(id)) {
       alert("invalid id: " + id);
@@ -651,7 +830,7 @@ function initVR() {
     }
     var properties = idToObjectProperties[id];
     properties[property] = value;
-    if (idToObject.hasOwnProperty(id)) {
+    if (idToObject.hasOwnProperty(id) && !properties.soft) {
       var object = idToObject[id];
       switch (property) {
         case "name":
@@ -692,6 +871,8 @@ function initVR() {
             object.material.transparent = false;
           }
           break;
+        case "wireframe":
+          object.material.wireframe = value;
         default:
           removeObject(id);
           addObjectJSON(id);
@@ -708,15 +889,13 @@ function initVR() {
     if (property === "type") {
       return typeToString(properties[property]);
     }
-    if (idToObject.hasOwnProperty(id)) {
+    if (idToObject.hasOwnProperty(id) && !properties.soft) {
       var object = idToObject[id];
       var physicsBody = idToPhysicsBody[id];
     } else {
       return properties[property];
     }
     switch (property) {
-      case "name":
-        return object.name;
       case "positionx":
         return object.position.x;
       case "positiony":
@@ -802,21 +981,25 @@ function initVR() {
     var properties = idToObjectProperties[id];
     var object = idToObject[id];
     var physicsBody = idToPhysicsBody[id];
-    properties.positionx = object.position.x;
-    properties.positiony = object.position.y;
-    properties.positionz = object.position.z;
-    properties.rotationx = object.rotation.x;
-    properties.rotationy = object.rotation.y;
-    properties.rotationz = object.rotation.z;
-    properties.linearvelocityx = physicsBody.getLinearVelocity().x();
-    properties.linearvelocityy = physicsBody.getLinearVelocity().y();
-    properties.linearvelocityz = physicsBody.getLinearVelocity().z();
-    properties.angularvelocityx = physicsBody.getAngularVelocity().x();
-    properties.angularvelocityy = physicsBody.getAngularVelocity().y();
-    properties.angularvelocityy = physicsBody.getAngularVelocity().z();
-    rigidBodies.splice(rigidBodies.indexOf(object), 1);
+    if (properties.soft) {
+      softBodies.splice(softBodies.indexOf(object), 1);
+    } else {
+      properties.positionx = object.position.x;
+      properties.positiony = object.position.y;
+      properties.positionz = object.position.z;
+      properties.rotationx = object.rotation.x;
+      properties.rotationy = object.rotation.y;
+      properties.rotationz = object.rotation.z;
+      properties.linearvelocityx = physicsBody.getLinearVelocity().x();
+      properties.linearvelocityy = physicsBody.getLinearVelocity().y();
+      properties.linearvelocityz = physicsBody.getLinearVelocity().z();
+      properties.angularvelocityx = physicsBody.getAngularVelocity().x();
+      properties.angularvelocityy = physicsBody.getAngularVelocity().y();
+      properties.angularvelocityy = physicsBody.getAngularVelocity().z();
+      rigidBodies.splice(rigidBodies.indexOf(object), 1);
+    }
     scene.remove(object);
-    physicsWorld.removeRigidBody(physicsBody);
+    physicsWorld.removeCollisionObject(physicsBody);
     delete idToObject[id];
     delete idToPhysicsBody[id];
   }
@@ -895,12 +1078,15 @@ function initVR() {
         break;
       case "gravityx":
         physicsWorld.setGravity(new Ammo.btVector3(value, physicsWorld.getGravity().y(), physicsWorld.getGravity().z()));
+        physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(value, physicsWorld.getGravity().y(), physicsWorld.getGravity().z()));
         break;
       case "gravityy":
         physicsWorld.setGravity(new Ammo.btVector3(physicsWorld.getGravity().x(), value, physicsWorld.getGravity().z()));
+        physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(physicsWorld.getGravity().x(), value, physicsWorld.getGravity().z()));
         break;
       case "gravityz":
         physicsWorld.setGravity(new Ammo.btVector3(physicsWorld.getGravity().x(), physicsWorld.getGravity().y(), value));
+        physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(physicsWorld.getGravity().x(), physicsWorld.getGravity().y(), value));
         break;
       default:
         shadows = value;
