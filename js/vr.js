@@ -519,7 +519,7 @@ function initVR() {
     processObject(objectGeometry, objectJSON.name, objectJSON.positionx, objectJSON.positiony, objectJSON.positionz, objectJSON.rotationx, objectJSON.rotationy, objectJSON.rotationz, objectJSON.scalex, objectJSON.scaley, objectJSON.scalez, objectJSON.color, objectJSON.opacity, objectJSON.textureURL, objectJSON.mass, objectJSON.linearvelocityx, objectJSON.linearvelocityy, objectJSON.linearvelocityz, objectJSON.angularvelocityx, objectJSON.angularvelocityy, objectJSON.angularvelocityz, objectJSON.pressure, objectJSON.friction, objectJSON.restitution, objectJSON.flatshading, objectJSON.wireframe, objectJSON.collision, objectJSON.soft, id);
   }
 
-  addObject = addObjectJSON;
+  addObjectToScene = addObjectJSON;
 
   function addLightJSON(id) {
     if (idToLight.hasOwnProperty(id)) {
@@ -555,7 +555,7 @@ function initVR() {
     processLight(light, id);
   }
 
-  addLight = addLightJSON;
+  addLightToScene = addLightJSON;
 
   function createHUD(i, texture, x, y) {
     var hudMaterial = new THREE.SpriteMaterial({map: texture});
@@ -875,7 +875,7 @@ function initVR() {
         case "wireframe":
           object.material.wireframe = value;
         default:
-          removeObject(id);
+          removeObjectFromScene(id);
           addObjectJSON(id);
       }
     }
@@ -978,7 +978,7 @@ function initVR() {
     return idToLightProperties[id][property];
   }
 
-  removeObject = function removeObject(id) {
+  removeObjectFromScene = function removeObjectFromScene(id) {
     if (!idToObject.hasOwnProperty(id)) {
       alert("object " + id + " not in scene");
       return;
@@ -1009,7 +1009,7 @@ function initVR() {
     delete idToPhysicsBody[id];
   }
 
-  removeLight = function removeLight(id) {
+  removeLightFromScene = function removeLightFromScene(id) {
     if (!idToLight.hasOwnProperty(id)) {
       alert("light " + id + " not in scene");
       return;
@@ -1173,8 +1173,8 @@ function initVR() {
 var createObject;
 var createLight;
 
-var addObject;
-var addLight;
+var addObjectToScene;
+var addLightToScene;
 
 var setObjectProperty;
 var getObjectProperty;
@@ -1182,8 +1182,8 @@ var getObjectProperty;
 var setLightProperty;
 var getLightProperty;
 
-var removeObject;
-var removeLight;
+var removeObjectFromScene;
+var removeLightFromScene;
 
 var setCameraProperty;
 var getCameraProperty;
