@@ -1444,6 +1444,17 @@ function initEditor() {
     });
     objectTypeButton.addEventListener("click", function() {
       CLICKED.soft = !CLICKED.soft;
+      if (CLICKED.geometry.type === "BoxBufferGeometry") {
+        if (CLICKED.soft) {
+          var segments = 8;
+        } else {
+          var segments = 1;
+        }
+        document.getElementById("box-width-segments").value = segments;
+        document.getElementById("box-height-segments").value = segments;
+        document.getElementById("box-depth-segments").value = segments;
+        updateGeometry(new THREE.BoxBufferGeometry(CLICKED.geometry.parameters.width, CLICKED.geometry.parameters.height, CLICKED.geometry.parameters.depth, segments, segments, segments));
+      }
       updateObjectType(CLICKED.soft);
     });
   }
