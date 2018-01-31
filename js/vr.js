@@ -331,22 +331,26 @@ function initVR() {
     ].join("\n");
   }
 
-  function createRigidBody(object, physicsShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id) {
+  function createRigidBody(object, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id) {
+    var objectShape = new Ammo.btConvexHullShape();
+    for (var i = 0; i < object.geometry.vertices.length; i++) {
+      objectShape.addPoint(new Ammo.btVector3(object.geometry.vertices[i].x, object.geometry.vertices[i].y, object.geometry.vertices[i].z));
+    }
+    objectShape.setMargin(margin);
     var transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(object.position.x, object.position.y, object.position.z));
     transform.setRotation(new Ammo.btQuaternion(object.quaternion.x, object.quaternion.y, object.quaternion.z, object.quaternion.w));
     var motionState = new Ammo.btDefaultMotionState(transform);
     var localInertia = new Ammo.btVector3(0, 0, 0);
-    physicsShape.calculateLocalInertia(mass, localInertia);
-    var rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, physicsShape, localInertia);
+    objectShape.calculateLocalInertia(mass, localInertia);
+    var rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, objectShape, localInertia);
     rbInfo.set_m_friction(friction);
     rbInfo.set_m_restitution(restitution);
     var body = new Ammo.btRigidBody(rbInfo);
     body.setLinearVelocity(new Ammo.btVector3(linearvelocityx, linearvelocityy, linearvelocityz));
     body.setAngularVelocity(new Ammo.btVector3(angularvelocityx, angularvelocityy, angularvelocityz));
     object.userData.physicsBody = body;
-    scene.add(object);
     if (mass > 0) {
       rigidBodies.push(object);
       body.setActivationState(4);
@@ -705,12 +709,8 @@ function initVR() {
       object.name = name;
       object.position.set(positionx, positiony, positionz);
       object.rotation.set(rotationx, rotationy, rotationz);
-      var objectShape = new Ammo.btConvexHullShape();
-      for (var i = 0; i < objectGeometry.vertices.length; i++) {
-        objectShape.addPoint(new Ammo.btVector3(objectGeometry.vertices[i].x, objectGeometry.vertices[i].y, objectGeometry.vertices[i].z));
-      }
-      objectShape.setMargin(margin);
-      createRigidBody(object, objectShape, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id);
+      createRigidBody(object, mass, linearvelocityx, linearvelocityy, linearvelocityz, angularvelocityx, angularvelocityy, angularvelocityz, friction, restitution, collision, id);
+      scene.add(object);
     }
     idToObject[id] = object;
     object.userData.id = id;
@@ -833,33 +833,58 @@ function initVR() {
     properties[property] = value;
     if (idToObject.hasOwnProperty(id) && !properties.soft) {
       var object = idToObject[id];
+      var physicsBody = idToPhysicsBody[id];
       switch (property) {
         case "name":
           object.name = value;
           break;
         case "positionx":
-          object.userData.physicsBody.getWorldTransform().setOrigin(new Ammo.btVector3(value, object.position.y, object.position.z));
+          object.position.x = value;
+          physicsWorld.removeRigidBody(physicsBody);
+          if (properties.mass > 0) {
+            rigidBodies.splice(rigidBodies.indexOf(object), 1);
+          }
+          createRigidBody(object, properties.mass, physicsBody.getLinearVelocity().x(), physicsBody.getLinearVelocity().y(), physicsBody.getLinearVelocity().z(), physicsBody.getAngularVelocity().x(), physicsBody.getAngularVelocity().y(), physicsBody.getAngularVelocity().z(), properties.friction, properties.restitution, properties.collision, id);
           break;
         case "positiony":
-          object.userData.physicsBody.getWorldTransform().setOrigin(new Ammo.btVector3(object.position.x, value, object.position.z));
+          object.position.y = value;
+          physicsWorld.removeRigidBody(object.userData.physicsBody);
+          if (properties.mass > 0) {
+            rigidBodies.splice(rigidBodies.indexOf(object), 1);
+          }
+          createRigidBody(object, properties.mass, physicsBody.getLinearVelocity().x(), physicsBody.getLinearVelocity().y(), physicsBody.getLinearVelocity().z(), physicsBody.getAngularVelocity().x(), physicsBody.getAngularVelocity().y(), physicsBody.getAngularVelocity().z(), properties.friction, properties.restitution, properties.collision, id);
           break;
         case "positionz":
-          object.userData.physicsBody.getWorldTransform().setOrigin(new Ammo.btVector3(object.position.x, object.position.y, value));
+          object.position.z = value;
+          physicsWorld.removeRigidBody(object.userData.physicsBody);
+          if (properties.mass > 0) {
+            rigidBodies.splice(rigidBodies.indexOf(object), 1);
+          }
+          createRigidBody(object, properties.mass, physicsBody.getLinearVelocity().x(), physicsBody.getLinearVelocity().y(), physicsBody.getLinearVelocity().z(), physicsBody.getAngularVelocity().x(), physicsBody.getAngularVelocity().y(), physicsBody.getAngularVelocity().z(), properties.friction, properties.restitution, properties.collision, id);
           break;
         case "rotationx":
-          var newQuaternion = new Ammo.btQuaternion();
-          newQuaternion.setEulerZYX(object.rotation.z, object.rotation.y, value);
-          object.userData.physicsBody.getWorldTransform().setRotation(newQuaternion);
+          object.rotation.x = value;
+          physicsWorld.removeRigidBody(object.userData.physicsBody);
+          if (properties.mass > 0) {
+            rigidBodies.splice(rigidBodies.indexOf(object), 1);
+          }
+          createRigidBody(object, properties.mass, physicsBody.getLinearVelocity().x(), physicsBody.getLinearVelocity().y(), physicsBody.getLinearVelocity().z(), physicsBody.getAngularVelocity().x(), physicsBody.getAngularVelocity().y(), physicsBody.getAngularVelocity().z(), properties.friction, properties.restitution, properties.collision, id);
           break;
         case "rotationy":
-          var newQuaternion = new Ammo.btQuaternion();
-          newQuaternion.setEulerZYX(object.rotation.z, value, object.rotation.x);
-          object.userData.physicsBody.getWorldTransform().setRotation(newQuaternion);
+          object.rotation.y = value;
+          physicsWorld.removeRigidBody(object.userData.physicsBody);
+          if (properties.mass > 0) {
+            rigidBodies.splice(rigidBodies.indexOf(object), 1);
+          }
+          createRigidBody(object, properties.mass, physicsBody.getLinearVelocity().x(), physicsBody.getLinearVelocity().y(), physicsBody.getLinearVelocity().z(), physicsBody.getAngularVelocity().x(), physicsBody.getAngularVelocity().y(), physicsBody.getAngularVelocity().z(), properties.friction, properties.restitution, properties.collision, id);
           break;
         case "rotationz":
-          var newQuaternion = new Ammo.btQuaternion();
-          newQuaternion.setEulerZYX(value, object.rotation.y, object.rotation.x);
-          object.userData.physicsBody.getWorldTransform().setRotation(newQuaternion);
+          object.rotation.z = value;
+          physicsWorld.removeRigidBody(object.userData.physicsBody);
+          if (properties.mass > 0) {
+            rigidBodies.splice(rigidBodies.indexOf(object), 1);
+          }
+          createRigidBody(object, properties.mass, physicsBody.getLinearVelocity().x(), physicsBody.getLinearVelocity().y(), physicsBody.getLinearVelocity().z(), physicsBody.getAngularVelocity().x(), physicsBody.getAngularVelocity().y(), physicsBody.getAngularVelocity().z(), properties.friction, properties.restitution, properties.collision, id);
           break;
         case "color":
           object.material.color = new THREE.Color(value);
@@ -1001,7 +1026,9 @@ function initVR() {
       properties.angularvelocityx = physicsBody.getAngularVelocity().x();
       properties.angularvelocityy = physicsBody.getAngularVelocity().y();
       properties.angularvelocityy = physicsBody.getAngularVelocity().z();
-      rigidBodies.splice(rigidBodies.indexOf(object), 1);
+      if (properties.mass > 0) {
+        rigidBodies.splice(rigidBodies.indexOf(object), 1);
+      }
     }
     scene.remove(object);
     physicsWorld.removeCollisionObject(physicsBody);
